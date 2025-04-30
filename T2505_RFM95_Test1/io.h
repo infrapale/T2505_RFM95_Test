@@ -3,29 +3,31 @@
 #include <Arduino.h>
 //#include "main.h"
 
-#define BOARD_T2504_PICO_RFM95_80x70
-//#define BOARD_PROTO_PICO_RFM95
+#define BOARD_T2504_PICO_RFM95_80x70    1
+#define BOARD_PROTO_PICO_RFM95          2
+#define BOARD BOARD_PROTO_PICO_RFM95 
 
 #define PIN_WIRE_SDA        (12u)
 #define PIN_WIRE_SCL        (13u)
 
 
-#ifdef BOARD_T2504_PICO_RFM95_80x70
+#if BOARD == BOARD_T2504_PICO_RFM95_80x70
 #define PIN_RFM_MOSI        (19u)
 #define PIN_RFM_MISO        (16u)
 #define PIN_RFM_SCK         (18u)
 #define PIN_RFM_CS          (17u)
 #define PIN_RFM_IRQ         (21u)
 #define PIN_RFM_RESET       (20u)
-#endif
 
-#ifdef BOARD_PROTO_PICO_RFM95
+#elif BOARD == BOARD_PROTO_PICO_RFM95
 #define PIN_RFM_MOSI        (19u)
 #define PIN_RFM_MISO        (16u)
 #define PIN_RFM_SCK         (18u)
 #define PIN_RFM_CS          (10u)
-#define PIN_RFM_IRQ         (0u)
+#define PIN_RFM_IRQ         (21u)
 #define PIN_RFM_RESET       (11u)
+#else
+#error No board was defined
 #endif
 
 #define PIN_SW1		          (15u)

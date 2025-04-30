@@ -17,7 +17,6 @@
 #define CLIENT_ADDRESS 1
 #define SERVER_ADDRESS 2
 
-node_ctrl_st node_ctrl = {NODE_CLIENT};
 
 // Singleton instance of the radio driver
 // RH_RF95(uint8_t slaveSelectPin = SS, uint8_t interruptPin = 2, RHGenericSPI& spi = hardware_spi);
@@ -26,7 +25,14 @@ RH_RF95 driver(PIN_RFM_CS, PIN_RFM_IRQ );
 //RH_RF95 driver(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 
 // Class to manage message delivery and receipt, using the driver declared above
+#ifdef LORA_CLIENT
 RHReliableDatagram manager(driver, CLIENT_ADDRESS);
+node_ctrl_st node_ctrl = {NODE_CLIENT};
+
+#else
+RHReliableDatagram manager(driver, SERVER_ADDRESS);
+node_ctrl_st node_ctrl = {NODE_SERVER};
+#endif
 
 // Need this on Arduino Zero with SerialUSB port (eg RocketScream Mini Ultra Pro)
 //#define Serial SerialUSB
@@ -65,15 +71,18 @@ void setup()
   {
       Serial.println("LoRa Server Node");
   }
-  atask_initialize();
-  atask_add_new(&debug_task_handle);
-  io_initialize();
+  //atask_initialize();
+  //atask_add_new(&debug_task_handle);
+  //io_initialize();
 
   //driver.setPreambleLength(uint16_t bytes);
   driver.setFrequency(868.0);
 
   if (!manager.init())
     Serial.println("init failed");
+  else
+    Serial.println("RFM95 was Initialized");
+
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
 
   // The default transmitter power is 13dBm, using PA_BOOST.
@@ -97,9 +106,9 @@ void setup()
 void setup1(void)
 {
     io_initialize();
-    io_blink(COLOR_RED, 1);
-    io_blink(COLOR_GREEN, 6);
-    io_blink(COLOR_BLUE, 7);
+    // io_blink(COLOR_RED, 1);
+    // io_blink(COLOR_GREEN, 6);
+    // io_blink(COLOR_BLUE, 7);
 }
 
 
@@ -110,7 +119,7 @@ void loop()
       Serial.println("Sending to rf95_reliable_datagram_server");
         
       // Send a message to manager_server
-      if (manager.sendtoWait(data[0], sizeof(data), SERVER_ADDRESS))
+      if (manager.sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
       {
         // Now wait for a reply from the server
         uint8_t len = sizeof(buf);
@@ -146,10 +155,12 @@ void loop()
           Serial.println((char*)buf);
 
           // Send a reply back to the originator client
-          if (!manager.sendtoWait(data[1], sizeof(data), from))
+          if (!manager.sendtoWait(data[1], sizeof(data[1]), from))
             Serial.println("sendtoWait failed");
         }
       }
+    delay(100);
+    // Serial.print(node_ctrl.node_type);
   }
 }
 

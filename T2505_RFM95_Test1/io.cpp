@@ -42,15 +42,16 @@ atask_st io_task_handle       =   {"I/O Task       ", 100,     0,     0,  255,  
 void io_initialize(void)
 {
   analogReadResolution(12);
-
+  //RFM95 Reset
   pinMode(PIN_RFM_RESET, OUTPUT);
   digitalWrite(PIN_RFM_RESET, HIGH);
 
+
+  #if BOARD == BOARD_T2504_PICO_RFM95_80x70
   pinMode(PIN_SW1, INPUT_PULLUP);
   pinMode(PIN_SW2, INPUT_PULLUP);
   pinMode(PIN_SW3, INPUT_PULLUP);
   pinMode(PIN_SW4, INPUT_PULLUP);
-
   io_ctrl.pattern_bit = 0;
 
   for (uint8_t i = COLOR_RED; i <= COLOR_BLUE; i++)
@@ -58,6 +59,7 @@ void io_initialize(void)
     pinMode(led[i].pin, OUTPUT);
     digitalWrite(led[i].pin, LOW);
   } 
+  #endif
   //atask_add_new(&io_task_handle);
 }
 
@@ -69,6 +71,7 @@ void io_blink(uint8_t color, uint8_t pindx)
 void io_task(void)
 {
 
+  #if BOARD == BOARD_T2504_PICO_RFM95_80x70
   uint32_t patt = 1UL << io_ctrl.pattern_bit;
   for (uint8_t i = COLOR_RED; i <= COLOR_BLUE; i++)
   {
@@ -78,5 +81,5 @@ void io_task(void)
         digitalWrite(led[i].pin, LOW);
   } 
   if (++io_ctrl.pattern_bit >= LED_PATTERN_NBR_OF) io_ctrl.pattern_bit = 0;
-
+  #endif
 }

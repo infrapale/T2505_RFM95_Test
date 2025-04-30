@@ -1,13 +1,24 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
+//#define LORA_CLIENT
+#define LORA_SERVER
+
 #define LABEL_LEN           12
 #define TIME_ZONE_OFFS      3
 #define UNIT_LABEL_LEN      10
 #define MEASURE_LABEL_LEN   16
 
 #define APP_NAME   "T2504 Pico RFM95 80x70"
-#define MAIN_TITLE "RFM95 Test"
+#ifdef  LORA_CLIENT
+#define MAIN_TITLE "LoRa Client"
+#ifdef  LORA_SERVER
+#error  Only one application can be defined
+#endif
+#else
+#define MAIN_TITLE "LoRa Server"
+#endif
+
 
 typedef enum
 {
