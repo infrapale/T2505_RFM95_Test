@@ -1,8 +1,6 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#define BOARD_T2504_PICO_RFM95_80x70
-
 #define LABEL_LEN           12
 #define TIME_ZONE_OFFS      3
 #define UNIT_LABEL_LEN      10
