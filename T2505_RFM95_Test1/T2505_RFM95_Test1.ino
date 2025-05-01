@@ -129,7 +129,7 @@ void loop()
       }
       else
         Serial.println("sendtoWait failed");
-      delay(500);
+      delay(2000);
   }
   else 
   {
