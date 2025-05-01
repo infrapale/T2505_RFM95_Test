@@ -106,9 +106,11 @@ void setup()
 void setup1(void)
 {
     io_initialize();
-    // io_blink(COLOR_RED, 1);
-    // io_blink(COLOR_GREEN, 6);
-    // io_blink(COLOR_BLUE, 7);
+    #if BOARD == BOARD_T2504_PICO_RFM95_80x70
+    io_blink(COLOR_RED, 1);
+    io_blink(COLOR_GREEN, 6);
+    io_blink(COLOR_BLUE, 7);
+    #endif
 }
 
 
