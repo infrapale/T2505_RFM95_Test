@@ -5,7 +5,7 @@
 
 #define BOARD_T2504_PICO_RFM95_80x70    1
 #define BOARD_PROTO_PICO_RFM95          2
-#define BOARD BOARD_PROTO_PICO_RFM95 
+#define BOARD BOARD_T2504_PICO_RFM95_80x70 
 
 #define PIN_WIRE_SDA        (12u)
 #define PIN_WIRE_SCL        (13u)
@@ -51,6 +51,8 @@ typedef enum
 
 
 void io_initialize(void);
+
+uint8_t io_get_switch_bm(void);
 
 void io_blink(uint8_t color, uint8_t pindx);
 

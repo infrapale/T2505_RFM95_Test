@@ -14,8 +14,9 @@
 #include "io.h"
 
 
-#define CLIENT_ADDRESS 1
-#define SERVER_ADDRESS 2
+// #define DEFAULT_ADDRESS 0
+// #define CLIENT_ADDRESS 1
+// #define SERVER_ADDRESS 2
 
 
 // Singleton instance of the radio driver
@@ -24,15 +25,15 @@
 RH_RF95 driver(PIN_RFM_CS, PIN_RFM_IRQ );
 //RH_RF95 driver(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 
-// Class to manage message delivery and receipt, using the driver declared above
-#ifdef LORA_CLIENT
-RHReliableDatagram manager(driver, CLIENT_ADDRESS);
-node_ctrl_st node_ctrl = {NODE_CLIENT};
-
-#else
-RHReliableDatagram manager(driver, SERVER_ADDRESS);
-node_ctrl_st node_ctrl = {NODE_SERVER};
-#endif
+//Class to manage message delivery and receipt, using the driver declared above
+RHReliableDatagram manager(driver, DEFAULT_ADDRESS);
+// #ifdef LORA_CLIENT
+// RHReliableDatagram manager(driver, CLIENT_ADDRESS);
+// node_ctrl_st node_ctrl = {NODE_CLIENT};
+// #else
+// RHReliableDatagram manager(driver, SERVER_ADDRESS);
+// node_ctrl_st node_ctrl = {NODE_SERVER};
+// #endif
 
 // Need this on Arduino Zero with SerialUSB port (eg RocketScream Mini Ultra Pro)
 //#define Serial SerialUSB
@@ -47,6 +48,8 @@ uint8_t data[2][32]=
     "Hello World!",
     "And hello back to you"
 };
+
+main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED};
 
 //uint8_t data[] = "Hello World!";
 // Dont put this on the stack:
@@ -63,14 +66,38 @@ void setup()
 
   Serial.begin(9600);
   while (!Serial) ; // Wait for serial port to be available
-  if(node_ctrl.node_type == NODE_CLIENT)
+  Serial.print("T2505_RFM95_Test"); Serial.print(" Compiled: ");
+  Serial.print(__DATE__); Serial.print(" ");
+  Serial.print(__TIME__); Serial.println();
+
+  main_ctrl.node_addr = io_get_switch_bm();
+  if((main_ctrl.node_addr & 0b00001000) != 0) main_ctrl.node_role = NODE_ROLE_CLIENT;
+  else main_ctrl.node_role = NODE_ROLE_SERVER;
+  main_ctrl.node_addr &= ~0b00001000;
+
+  delay(1000);  //ensure that IO was initialized
+  switch(main_ctrl.node_role)
   {
-      Serial.println("LoRa Client Node");
-  }
-  else 
-  {
-      Serial.println("LoRa Server Node");
-  }
+    case NODE_ROLE_CLIENT: 
+          manager.setHeaderFrom(CLIENT_ADDRESS);
+      Serial.print("LoRa Client Node ");
+      io_blink(COLOR_GREEN, 5);
+      break;
+    case NODE_ROLE_SERVER:
+      manager.setHeaderFrom(SERVER_ADDRESS);
+      io_blink(COLOR_GREEN, 6);
+      Serial.print("LoRa Server Node ");
+      break;
+    default:
+      Serial.println("Node Role was not defined!!");
+      io_blink(COLOR_RED, 5);
+      io_blink(COLOR_GREEN, 0);
+      io_blink(COLOR_BLUE, 5);
+      while(true){};
+      break; 
+  } 
+  Serial.printf("Node Address %d\n", main_ctrl.node_addr);
+
   //atask_initialize();
   //atask_add_new(&debug_task_handle);
   //io_initialize();
@@ -78,10 +105,8 @@ void setup()
   //driver.setPreambleLength(uint16_t bytes);
   driver.setFrequency(868.0);
 
-  if (!manager.init())
-    Serial.println("init failed");
-  else
-    Serial.println("RFM95 was Initialized");
+  if (!manager.init()) Serial.println("RFM95 init failed");
+  else Serial.println("RFM95 was Initialized");
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
 
@@ -107,43 +132,42 @@ void setup1(void)
 {
     io_initialize();
     #if BOARD == BOARD_T2504_PICO_RFM95_80x70
-    io_blink(COLOR_RED, 1);
-    io_blink(COLOR_GREEN, 6);
-    io_blink(COLOR_BLUE, 7);
+    io_blink(COLOR_RED, 0);
+    io_blink(COLOR_GREEN, 2);
+    io_blink(COLOR_BLUE, 0);
     #endif
 }
 
-
-void loop()
+void loop_client()
 {
-  if(node_ctrl.node_type == NODE_CLIENT)
-  {         
-      Serial.println("Sending to rf95_reliable_datagram_server");
-        
-      // Send a message to manager_server
-      if (manager.sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
+    Serial.println("Sending to rf95_reliable_datagram_server");
+      
+    // Send a message to manager_server
+    if (manager.sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
+    {
+      // Now wait for a reply from the server
+      uint8_t len = sizeof(buf);
+      uint8_t from;   
+      if (manager.recvfromAckTimeout(buf, &len, 2000, &from))
       {
-        // Now wait for a reply from the server
-        uint8_t len = sizeof(buf);
-        uint8_t from;   
-        if (manager.recvfromAckTimeout(buf, &len, 2000, &from))
-        {
-          Serial.print("got reply from : 0x");
-          Serial.print(from, HEX);
-          Serial.print(": ");
-          Serial.println((char*)buf);
-        }
-        else
-        {
-          Serial.println("No reply, is rf95_reliable_datagram_server running?");
-        }
+        Serial.printf("Got Reply from : 0x%2X : %s", from, (char*)buf);
+        // Serial.print("got reply from : 0x");
+        // Serial.print(from, HEX);
+        // Serial.print(": ");
+        // Serial.println((char*)buf);
       }
       else
-        Serial.println("sendtoWait failed");
-      delay(2000);
-  }
-  else 
-  {
+      {
+        Serial.println("No reply, is rf95_reliable_datagram_server running?");
+      }
+    }
+    else
+      Serial.println("sendtoWait failed");
+    delay(2000);
+}
+
+void loop_server()
+{
       if (manager.available())
       {
         // Wait for a message addressed to us from the client
@@ -151,10 +175,11 @@ void loop()
         uint8_t from;
         if (manager.recvfromAck(buf, &len, &from))
         {
-          Serial.print("got request from : 0x");
-          Serial.print(from, HEX);
-          Serial.print(": ");
-          Serial.println((char*)buf);
+          Serial.printf("Got Request from : 0x%2X : %s", from, (char*)buf);
+          // Serial.print("got request from : 0x");
+          // Serial.print(from, HEX);
+          // Serial.print(": ");
+          // Serial.println((char*)buf);
 
           // Send a reply back to the originator client
           if (!manager.sendtoWait(data[1], sizeof(data[1]), from))
@@ -163,6 +188,22 @@ void loop()
       }
     delay(100);
     // Serial.print(node_ctrl.node_type);
+}
+
+void loop()
+{
+  switch(main_ctrl.node_role)
+  {
+      case NODE_ROLE_CLIENT:
+        loop_client();
+        break;
+      case NODE_ROLE_SERVER:
+        loop_server();
+        break;
+      default:    
+        Serial.println("Incorrect Node Role!!");
+        delay(5000);
+        break;
   }
 }
 
