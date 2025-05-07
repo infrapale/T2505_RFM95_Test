@@ -174,9 +174,12 @@ void loop_client()
 {
   Serial.println("Sending to rf95_server");
   // Send a message to rf95_server
-  uint8_t data[] = "Hello World!";
+  uint8_t data[40];
+
+  sprintf((char*)data,"C->S;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
+
   rf95.send(data, sizeof(data));
-  
+  main_ctrl.client_cntr++;
   rf95.waitPacketSent();
   // Now wait for a reply
   uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
@@ -187,10 +190,7 @@ void loop_client()
     // Should be a reply message for us now   
     if (rf95.recv(buf, &len))
    {
-      Serial.print("got reply: ");
-      Serial.println((char*)buf);
-      Serial.print("RSSI: ");
-      Serial.println(rf95.lastRssi(), DEC);    
+      Serial.printf("Received Reply: %s, RSSI= %d\n",(char*)buf,rf95.lastRssi());
     }
     else
     {
@@ -201,7 +201,7 @@ void loop_client()
   {
     Serial.println("No reply, is rf95_server running?");
   }
-  delay(400);
+  delay(4000);
 }
 
 void loop_server()
@@ -213,14 +213,16 @@ void loop_server()
     uint8_t len = sizeof(buf);
     if (rf95.recv(buf, &len))
     {
+      main_ctrl.server_cntr++;
       //digitalWrite(led, HIGH);
-      Serial.println(rf95.lastRssi(), DEC);
+      Serial.printf("Received: %s, RSSI= %d\n",buf,rf95.lastRssi());
       
       // Send a reply
-      uint8_t data[] = "And hello back to you";
+      uint8_t data[40] = "And hello back to you";
+      sprintf((char*)data,"S->C;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
       rf95.send(data, sizeof(data));
       rf95.waitPacketSent();
-      Serial.println("Sent a reply");
+      Serial.printf("Sent a Reply: %s",(char*)data);
       //digitalWrite(led, LOW);
     }
     else
