@@ -38,6 +38,8 @@ typedef struct
 {
     uint8_t      node_addr;
     node_role_et node_role;
+    uint16_t     client_cntr;
+    uint16_t     server_cntr;
 } main_ctrl_st;
 
 

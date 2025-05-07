@@ -50,7 +50,7 @@ uint8_t data[2][32]=
     "And hello back to you"
 };
 
-main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED};
+main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED, 0, 0};
 
 //uint8_t data[] = "Hello World!";
 // Dont put this on the stack:
@@ -146,8 +146,10 @@ void loop_client()
     Serial.println("Sending to rf95_reliable_datagram_server");
       
     // Send a message to manager_server
+    sprintf((char*)data[0],"C->S;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
     if (managerp->sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
     {
+      main_ctrl.client_cntr++;
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;   
@@ -162,7 +164,7 @@ void loop_client()
     }
     else
       Serial.println("sendtoWait failed");
-    delay(2000);
+    delay(5000);
 }
 
 void loop_server()
@@ -174,10 +176,15 @@ void loop_server()
         uint8_t from;
         if (managerp->recvfromAck(buf, &len, &from))
         {
-          Serial.printf("Got Request from : 0x%02X : %s\n", from, (char*)buf);
+          String Buff = (char*)buf;
+          String Str = Buff.substring(6,10);
 
+          Serial.printf("Got Request from : 0x%02X : %s\n", from, (char*)buf);
           // Send a reply back to the originator client
-          if (!managerp->sendtoWait(data[1], sizeof(data[1]), from))
+          sprintf((char*)data[1],"S->C;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
+          if (managerp->sendtoWait(data[1], sizeof(data[1]), from))
+            main_ctrl.server_cntr = main_ctrl.client_cntr;
+          else
             Serial.println("sendtoWait failed");
         }
       }
