@@ -26,7 +26,8 @@ RH_RF95 driver(PIN_RFM_CS, PIN_RFM_IRQ );
 //RH_RF95 driver(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 
 //Class to manage message delivery and receipt, using the driver declared above
-RHReliableDatagram manager(driver, DEFAULT_ADDRESS);
+//RHReliableDatagram manager(driver, CLIENT_ADDRESS);
+RHReliableDatagram *managerp;
 // #ifdef LORA_CLIENT
 // RHReliableDatagram manager(driver, CLIENT_ADDRESS);
 // node_ctrl_st node_ctrl = {NODE_CLIENT};
@@ -79,12 +80,14 @@ void setup()
   switch(main_ctrl.node_role)
   {
     case NODE_ROLE_CLIENT: 
-          manager.setHeaderFrom(CLIENT_ADDRESS);
+      static RHReliableDatagram client_manager(driver, CLIENT_ADDRESS);
+      managerp = &client_manager;
       Serial.print("LoRa Client Node ");
       io_blink(COLOR_GREEN, 5);
       break;
     case NODE_ROLE_SERVER:
-      manager.setHeaderFrom(SERVER_ADDRESS);
+      static RHReliableDatagram server_manager(driver, SERVER_ADDRESS);
+      managerp = &server_manager;
       io_blink(COLOR_GREEN, 6);
       Serial.print("LoRa Server Node ");
       break;
@@ -105,7 +108,7 @@ void setup()
   //driver.setPreambleLength(uint16_t bytes);
   driver.setFrequency(868.0);
 
-  if (!manager.init()) Serial.println("RFM95 init failed");
+  if (!managerp->init()) Serial.println("RFM95 init failed");
   else Serial.println("RFM95 was Initialized");
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
@@ -143,18 +146,14 @@ void loop_client()
     Serial.println("Sending to rf95_reliable_datagram_server");
       
     // Send a message to manager_server
-    if (manager.sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
+    if (managerp->sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
     {
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;   
-      if (manager.recvfromAckTimeout(buf, &len, 2000, &from))
+      if (managerp->recvfromAckTimeout(buf, &len, 2000, &from))
       {
-        Serial.printf("Got Reply from : 0x%2X : %s", from, (char*)buf);
-        // Serial.print("got reply from : 0x");
-        // Serial.print(from, HEX);
-        // Serial.print(": ");
-        // Serial.println((char*)buf);
+        Serial.printf("Got Reply from : 0x%02X : %s\n", from, (char*)buf);
       }
       else
       {
@@ -168,26 +167,25 @@ void loop_client()
 
 void loop_server()
 {
-      if (manager.available())
+      if (managerp->available())
       {
         // Wait for a message addressed to us from the client
         uint8_t len = sizeof(buf);
         uint8_t from;
-        if (manager.recvfromAck(buf, &len, &from))
+        if (managerp->recvfromAck(buf, &len, &from))
         {
-          Serial.printf("Got Request from : 0x%2X : %s", from, (char*)buf);
-          // Serial.print("got request from : 0x");
-          // Serial.print(from, HEX);
-          // Serial.print(": ");
-          // Serial.println((char*)buf);
+          Serial.printf("Got Request from : 0x%02X : %s\n", from, (char*)buf);
 
           // Send a reply back to the originator client
-          if (!manager.sendtoWait(data[1], sizeof(data[1]), from))
+          if (!managerp->sendtoWait(data[1], sizeof(data[1]), from))
             Serial.println("sendtoWait failed");
         }
       }
+      else
+      {
+        // Serial.println("Manager is not available");
+      }
     delay(100);
-    // Serial.print(node_ctrl.node_type);
 }
 
 void loop()
