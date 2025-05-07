@@ -12,6 +12,7 @@ typedef struct
 typedef struct
 {
   uint8_t pattern_bit;
+  uint8_t switches;
 } io_ctrl_st;
 
 io_ctrl_st io_ctrl;
@@ -35,6 +36,8 @@ const uint32_t led_pattern[LED_PATTERN_NBR_OF] =
     0b1100110011001100,
 };
 
+const uint8_t sw_pin[4] = {PIN_SW1, PIN_SW2, PIN_SW3, PIN_SW4};
+
 void io_task(void);
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st io_task_handle       =   {"I/O Task       ", 100,     0,     0,  255,    0,  1,  io_task };
@@ -46,21 +49,30 @@ void io_initialize(void)
   pinMode(PIN_RFM_RESET, OUTPUT);
   digitalWrite(PIN_RFM_RESET, HIGH);
 
-
   #if BOARD == BOARD_T2504_PICO_RFM95_80x70
-  pinMode(PIN_SW1, INPUT_PULLUP);
-  pinMode(PIN_SW2, INPUT_PULLUP);
-  pinMode(PIN_SW3, INPUT_PULLUP);
-  pinMode(PIN_SW4, INPUT_PULLUP);
+  
   io_ctrl.pattern_bit = 0;
-
   for (uint8_t i = COLOR_RED; i <= COLOR_BLUE; i++)
   {
     pinMode(led[i].pin, OUTPUT);
     digitalWrite(led[i].pin, LOW);
   } 
   #endif
-  //atask_add_new(&io_task_handle);
+}
+
+uint8_t io_get_switch_bm(void)
+{
+    io_ctrl.switches = 0b00000000;
+    #if BOARD == BOARD_T2504_PICO_RFM95_80x70
+    for (uint8_t i=0; i < 4; i++)
+    {
+        pinMode(sw_pin[i], INPUT_PULLUP);
+        delay(10);
+        if (digitalRead(sw_pin[i]) == LOW) io_ctrl.switches |= (1 << i);
+    }  
+    
+    #endif
+    return io_ctrl.switches;
 }
 
 void io_blink(uint8_t color, uint8_t pindx)

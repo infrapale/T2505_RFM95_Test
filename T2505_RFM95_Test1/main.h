@@ -22,14 +22,30 @@
 
 typedef enum
 {
-    NODE_CLIENT = 0,
-    NODE_SERVER = 1
-} node_type_et;
+    DEFAULT_ADDRESS = 0,
+    CLIENT_ADDRESS  = 1,
+    SERVER_ADDRESS  = 2
+} addr_type_et;
+
+typedef enum
+{
+    NODE_ROLE_UNDEFINED = 0,
+    NODE_ROLE_CLIENT,
+    NODE_ROLE_SERVER
+} node_role_et;
 
 typedef struct 
 {
-    node_type_et    node_type; 
-} node_ctrl_st;
+    uint8_t      node_addr;
+    node_role_et node_role;
+} main_ctrl_st;
+
+
+
+// typedef struct 
+// {
+//     node_type_et    node_type; 
+// } node_ctrl_st;
 
 typedef struct date_time
 {

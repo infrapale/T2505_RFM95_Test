@@ -52,6 +52,8 @@ typedef enum
 
 void io_initialize(void);
 
+uint8_t io_get_switch_bm(void);
+
 void io_blink(uint8_t color, uint8_t pindx);
 
 void io_task(void);
