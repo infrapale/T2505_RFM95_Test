@@ -31,7 +31,10 @@ typedef enum
 {
     NODE_ROLE_UNDEFINED = 0,
     NODE_ROLE_CLIENT,
-    NODE_ROLE_SERVER
+    NODE_ROLE_SERVER,
+    NODE_ROLE_RELIABLE_CLIENT,
+    NODE_ROLE_RELIABLE_SERVER
+
 } node_role_et;
 
 typedef struct 

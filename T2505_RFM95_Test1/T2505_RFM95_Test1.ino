@@ -19,20 +19,20 @@
 // #define SERVER_ADDRESS 2
 
 
-// Singleton instance of the radio driver
+// Singleton instance of the radio rf95
 // RH_RF95(uint8_t slaveSelectPin = SS, uint8_t interruptPin = 2, RHGenericSPI& spi = hardware_spi);
-//RH_RF95 driver();
-RH_RF95 driver(PIN_RFM_CS, PIN_RFM_IRQ );
-//RH_RF95 driver(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
+//RH_RF95 rf95();
+RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
+//RH_RF95 rf95(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 
-//Class to manage message delivery and receipt, using the driver declared above
-//RHReliableDatagram manager(driver, CLIENT_ADDRESS);
+//Class to manage message delivery and receipt, using the rf95 declared above
+//RHReliableDatagram manager(rf95, CLIENT_ADDRESS);
 RHReliableDatagram *managerp;
 // #ifdef LORA_CLIENT
-// RHReliableDatagram manager(driver, CLIENT_ADDRESS);
+// RHReliableDatagram manager(rf95, CLIENT_ADDRESS);
 // node_ctrl_st node_ctrl = {NODE_CLIENT};
 // #else
-// RHReliableDatagram manager(driver, SERVER_ADDRESS);
+// RHReliableDatagram manager(rf95, SERVER_ADDRESS);
 // node_ctrl_st node_ctrl = {NODE_SERVER};
 // #endif
 
@@ -72,30 +72,46 @@ void setup()
   Serial.print(__TIME__); Serial.println();
 
   main_ctrl.node_addr = io_get_switch_bm();
-  if((main_ctrl.node_addr & 0b00001000) != 0) main_ctrl.node_role = NODE_ROLE_CLIENT;
-  else main_ctrl.node_role = NODE_ROLE_SERVER;
-  main_ctrl.node_addr &= ~0b00001000;
+  if((main_ctrl.node_addr & 0b00001000) != 0) 
+  {
+    if((main_ctrl.node_addr & 0b00000100) != 0 ) main_ctrl.node_role = NODE_ROLE_CLIENT;
+    else main_ctrl.node_role = NODE_ROLE_RELIABLE_CLIENT;
+  }
+  else
+  {
+    if((main_ctrl.node_addr & 0b00000100) != 0 ) main_ctrl.node_role = NODE_ROLE_SERVER;
+    else main_ctrl.node_role = NODE_ROLE_RELIABLE_SERVER;
+  } 
+  main_ctrl.node_addr &= ~0b00001100;
 
   delay(1000);  //ensure that IO was initialized
   switch(main_ctrl.node_role)
   {
     case NODE_ROLE_CLIENT: 
-      static RHReliableDatagram client_manager(driver, CLIENT_ADDRESS);
-      managerp = &client_manager;
       Serial.print("LoRa Client Node ");
-      io_blink(COLOR_GREEN, 5);
+      io_blink(COLOR_GREEN, BLINK_CLIENT);
       break;
     case NODE_ROLE_SERVER:
-      static RHReliableDatagram server_manager(driver, SERVER_ADDRESS);
-      managerp = &server_manager;
-      io_blink(COLOR_GREEN, 6);
+      io_blink(COLOR_GREEN, BLINK_SERVER);
       Serial.print("LoRa Server Node ");
+      break;
+    case NODE_ROLE_RELIABLE_CLIENT: 
+      static RHReliableDatagram client_manager(rf95, CLIENT_ADDRESS);
+      managerp = &client_manager;
+      Serial.print("LoRa Reliable Client Node ");
+      io_blink(COLOR_GREEN, BLINK_RELIABLE_CLIENT);
+      break;
+    case NODE_ROLE_RELIABLE_SERVER:
+      static RHReliableDatagram server_manager(rf95, SERVER_ADDRESS);
+      managerp = &server_manager;
+      io_blink(COLOR_GREEN, BLINK_RELIABLE_SERVER);
+      Serial.print("LoRa Reliable Server Node ");
       break;
     default:
       Serial.println("Node Role was not defined!!");
-      io_blink(COLOR_RED, 5);
-      io_blink(COLOR_GREEN, 0);
-      io_blink(COLOR_BLUE, 5);
+      io_blink(COLOR_RED, BLINK_FLASH);
+      io_blink(COLOR_GREEN, BLINK_OFF);
+      io_blink(COLOR_BLUE, BLINK_OFF);
       while(true){};
       break; 
   } 
@@ -105,28 +121,41 @@ void setup()
   //atask_add_new(&debug_task_handle);
   //io_initialize();
 
-  //driver.setPreambleLength(uint16_t bytes);
-  driver.setFrequency(868.0);
+  //rf95.setPreambleLength(uint16_t bytes);
 
-  if (!managerp->init()) Serial.println("RFM95 init failed");
-  else Serial.println("RFM95 was Initialized");
+  if (rf95.init())
+  {
+    Serial.println("RFM95 was Initialized");
+    rf95.setFrequency(868.0);
+    if ((main_ctrl.node_role == NODE_ROLE_RELIABLE_CLIENT ) || (main_ctrl.node_role == NODE_ROLE_RELIABLE_SERVER ))
+    {
+      if (!managerp->init()) Serial.println("RFM95 manager init failed");
+      else Serial.println("RFM95 Manager was Initialized");
+    }
+  }
+  else
+  {
+     Serial.println("RFM95 init failed");
+     io_blink(COLOR_RED, BLINK_SHORT_FLASH);
+  }
+
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
 
   // The default transmitter power is 13dBm, using PA_BOOST.
   // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
   // you can set transmitter powers from 2 to 20 dBm:
-//  driver.setTxPower(20, false);
+//  rf95.setTxPower(20, false);
   // If you are using Modtronix inAir4 or inAir9, or any other module which uses the
   // transmitter RFO pins and not the PA_BOOST pins
   // then you can configure the power transmitter power for 0 to 15 dBm and with useRFO true. 
   // Failure to do that will result in extremely low transmit powers.
-//  driver.setTxPower(14, true);
+//  rf95.setTxPower(14, true);
 
   // You can optionally require this module to wait until Channel Activity
   // Detection shows no activity on the channel before transmitting by setting
   // the CAD timeout to non-zero:
-//  driver.setCADTimeout(10000);
+//  rf95.setCADTimeout(10000);
 
 
 }
@@ -135,13 +164,73 @@ void setup1(void)
 {
     io_initialize();
     #if BOARD == BOARD_T2504_PICO_RFM95_80x70
-    io_blink(COLOR_RED, 0);
-    io_blink(COLOR_GREEN, 2);
-    io_blink(COLOR_BLUE, 0);
+    io_blink(COLOR_RED, BLINK_OFF);
+    io_blink(COLOR_GREEN, BLINK_ON);
+    io_blink(COLOR_BLUE, BLINK_OFF);
     #endif
 }
 
 void loop_client()
+{
+  Serial.println("Sending to rf95_server");
+  // Send a message to rf95_server
+  uint8_t data[] = "Hello World!";
+  rf95.send(data, sizeof(data));
+  
+  rf95.waitPacketSent();
+  // Now wait for a reply
+  uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+  uint8_t len = sizeof(buf);
+
+  if (rf95.waitAvailableTimeout(3000))
+  { 
+    // Should be a reply message for us now   
+    if (rf95.recv(buf, &len))
+   {
+      Serial.print("got reply: ");
+      Serial.println((char*)buf);
+      Serial.print("RSSI: ");
+      Serial.println(rf95.lastRssi(), DEC);    
+    }
+    else
+    {
+      Serial.println("recv failed");
+    }
+  }
+  else
+  {
+    Serial.println("No reply, is rf95_server running?");
+  }
+  delay(400);
+}
+
+void loop_server()
+{
+  if (rf95.available())
+  {
+    // Should be a message for us now   
+    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t len = sizeof(buf);
+    if (rf95.recv(buf, &len))
+    {
+      //digitalWrite(led, HIGH);
+      Serial.println(rf95.lastRssi(), DEC);
+      
+      // Send a reply
+      uint8_t data[] = "And hello back to you";
+      rf95.send(data, sizeof(data));
+      rf95.waitPacketSent();
+      Serial.println("Sent a reply");
+      //digitalWrite(led, LOW);
+    }
+    else
+    {
+      Serial.println("recv failed");
+    }
+  }
+}
+
+void loop_reliable_client()
 {
     Serial.println("Sending to rf95_reliable_datagram_server");
       
@@ -167,7 +256,7 @@ void loop_client()
     delay(5000);
 }
 
-void loop_server()
+void loop_reliable_server()
 {
       if (managerp->available())
       {
@@ -203,6 +292,12 @@ void loop()
         loop_client();
         break;
       case NODE_ROLE_SERVER:
+        loop_server();
+        break;
+      case NODE_ROLE_RELIABLE_CLIENT:
+        loop_client();
+        break;
+      case NODE_ROLE_RELIABLE_SERVER:
         loop_server();
         break;
       default:    

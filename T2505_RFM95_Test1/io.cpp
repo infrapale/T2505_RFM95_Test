@@ -24,7 +24,7 @@ led_st led[COLOR_NBR_OF] =
     {PIN_LED_BLUE, 0},
 };
 
-const uint32_t led_pattern[LED_PATTERN_NBR_OF] = 
+const uint32_t led_pattern[BLINK_NBR_OF] = 
 {
     0b0000000000000000,
     0b1111111111111111,
@@ -34,6 +34,12 @@ const uint32_t led_pattern[LED_PATTERN_NBR_OF] =
     0b1111111100000000,
     0b1111000011110000,
     0b1100110011001100,
+    0b1111000000100000,
+    0b1111000010001000,
+    0b1111001010101010,
+    0b1111001100110000,
+
+
 };
 
 const uint8_t sw_pin[4] = {PIN_SW1, PIN_SW2, PIN_SW3, PIN_SW4};
@@ -75,9 +81,9 @@ uint8_t io_get_switch_bm(void)
     return io_ctrl.switches;
 }
 
-void io_blink(uint8_t color, uint8_t pindx)
+void io_blink(uint8_t color, blink_et bindx)
 {
-  led[color].pattern = led_pattern[pindx];
+  led[color].pattern = led_pattern[bindx];
 }
 
 void io_task(void)
@@ -92,6 +98,6 @@ void io_task(void)
     else  
         digitalWrite(led[i].pin, LOW);
   } 
-  if (++io_ctrl.pattern_bit >= LED_PATTERN_NBR_OF) io_ctrl.pattern_bit = 0;
+  if (++io_ctrl.pattern_bit >= BLINK_NBR_OF) io_ctrl.pattern_bit = 0;
   #endif
 }

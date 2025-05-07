@@ -39,7 +39,7 @@
 #define PIN_LED_GREEN       (3u)
 #define PIN_LED_BLUE        (22u)
 
-#define LED_PATTERN_NBR_OF  8
+
 
 typedef enum
 {
@@ -49,12 +49,28 @@ typedef enum
   COLOR_NBR_OF
 } color_et;
 
+typedef enum
+{
+  BLINK_OFF = 0,
+  BLINK_ON,
+  BLINK_SHORT_FLASH,
+  BLINK_FLASH,
+  BLINK_FAST_FLASH,
+  BLINK_SLOW_BLINK,
+  BLINK_BLINK,
+  BLINK_FAST_BLINK,
+  BLINK_CLIENT,
+  BLINK_RELIABLE_CLIENT,
+  BLINK_SERVER,
+  BLINK_RELIABLE_SERVER,
+  BLINK_NBR_OF
+} blink_et;
 
 void io_initialize(void);
 
 uint8_t io_get_switch_bm(void);
 
-void io_blink(uint8_t color, uint8_t pindx);
+void io_blink(uint8_t color, blink_et bindx);
 
 void io_task(void);
 
