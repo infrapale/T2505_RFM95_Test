@@ -172,12 +172,12 @@ void setup1(void)
 
 void loop_client()
 {
-  Serial.println("Sending to rf95_server");
+  
   // Send a message to rf95_server
   uint8_t data[40];
 
   sprintf((char*)data,"C->S;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
-
+  Serial.println((char*)data);
   rf95.send(data, sizeof(data));
   main_ctrl.client_cntr++;
   rf95.waitPacketSent();
@@ -222,7 +222,7 @@ void loop_server()
       sprintf((char*)data,"S->C;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
       rf95.send(data, sizeof(data));
       rf95.waitPacketSent();
-      Serial.printf("Sent a Reply: %s",(char*)data);
+      Serial.printf("Sent a Reply: %s\n",(char*)data);
       //digitalWrite(led, LOW);
     }
     else
