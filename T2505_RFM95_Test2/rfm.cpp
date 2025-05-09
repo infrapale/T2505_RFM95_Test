@@ -10,8 +10,9 @@
 #include <SPI.h>
 
 #include "main.h"
-#include "atask.h"
+#include "rfm.h"
 #include "io.h"
+
 
 
 // Singleton instance of the radio rf95
@@ -31,13 +32,9 @@ RHReliableDatagram *managerp;
 // node_ctrl_st node_ctrl = {NODE_SERVER};
 // #endif
 
-// Need this on Arduino Zero with SerialUSB port (eg RocketScream Mini Ultra Pro)
-//#define Serial SerialUSB
 
-void print_debug_task(void){atask_print_status(true);}
+rfm_ctrl_st rfm_ctrl = { 0, NODE_ROLE_UNDEFINED, 0, 0};
 
-//                                  123456789012345   ival  next  state  prev  cntr flag  call backup
-atask_st debug_task_handle    =   {"Debug Task     ", 5000,    0,     0,  255,    0,  1,  print_debug_task };
 uint8_t data[2][32]=
 {    
     //1234567890123456789012
@@ -45,43 +42,16 @@ uint8_t data[2][32]=
     "And hello back to you"
 };
 
-main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED, 0, 0};
-
-//uint8_t data[] = "Hello World!";
 // Dont put this on the stack:
 uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
 
 
 
-void setup() 
+void rfm_initialize(node_role_et node_role)
 {
-  // Rocket Scream Mini Ultra Pro with the RFM95W only:
-  // Ensure serial flash is not interfering with radio communication on SPI bus
-//  pinMode(4, OUTPUT);
-//  digitalWrite(4, HIGH);
+  rfm_ctrl.node_role = node_role;
 
-  Serial.begin(9600);
-  while (!Serial) ; // Wait for serial port to be available
-  Serial.print("T2505_RFM95_Test"); Serial.print(" Compiled: ");
-  Serial.print(__DATE__); Serial.print(" ");
-  Serial.print(__TIME__); Serial.println();
-
-  main_ctrl.node_addr = io_get_switch_bm();
-  if((main_ctrl.node_addr & 0b00001000) != 0) 
-  {
-    if((main_ctrl.node_addr & 0b00000100) != 0 ) main_ctrl.node_role = NODE_ROLE_CLIENT;
-    else main_ctrl.node_role = NODE_ROLE_RELIABLE_CLIENT;
-  }
-  else
-  {
-    if((main_ctrl.node_addr & 0b00000100) != 0 ) main_ctrl.node_role = NODE_ROLE_SERVER;
-    else main_ctrl.node_role = NODE_ROLE_RELIABLE_SERVER;
-  } 
-  main_ctrl.node_addr &= ~0b00001100;
-
-  delay(1000);  //ensure that IO was initialized
-  
-  switch(main_ctrl.node_role)
+  switch(rfm_ctrl.node_role)
   {
     case NODE_ROLE_CLIENT: 
       Serial.print("LoRa Client Node ");
@@ -111,19 +81,16 @@ void setup()
       while(true){};
       break; 
   } 
-  Serial.printf("Node Address %d\n", main_ctrl.node_addr);
+  Serial.printf("Node Address %d\n", rfm_ctrl.node_addr);
 
-  //atask_initialize();
-  //atask_add_new(&debug_task_handle);
-  //io_initialize();
-
+  
   //rf95.setPreambleLength(uint16_t bytes);
 
   if (rf95.init())
   {
     Serial.println("RFM95 was Initialized");
     rf95.setFrequency(868.0);
-    if ((main_ctrl.node_role == NODE_ROLE_RELIABLE_CLIENT ) || (main_ctrl.node_role == NODE_ROLE_RELIABLE_SERVER ))
+    if ((rfm_ctrl.node_role == NODE_ROLE_RELIABLE_CLIENT ) || (rfm_ctrl.node_role == NODE_ROLE_RELIABLE_SERVER ))
     {
       if (!managerp->init()) Serial.println("RFM95 manager init failed");
       else Serial.println("RFM95 Manager was Initialized");
@@ -156,15 +123,6 @@ void setup()
 
 }
 
-void setup1(void)
-{
-    io_initialize();
-    #if BOARD == BOARD_T2504_PICO_RFM95_80x70
-    io_blink(COLOR_RED, BLINK_OFF);
-    io_blink(COLOR_GREEN, BLINK_ON);
-    io_blink(COLOR_BLUE, BLINK_OFF);
-    #endif
-}
 
 void loop_client()
 {
@@ -172,10 +130,10 @@ void loop_client()
   // Send a message to rf95_server
   uint8_t data[40];
 
-  sprintf((char*)data,"C->S;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
+  sprintf((char*)data,"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
   Serial.println((char*)data);
   rf95.send(data, sizeof(data));
-  main_ctrl.client_cntr++;
+  rfm_ctrl.client_cntr++;
   rf95.waitPacketSent();
   // Now wait for a reply
   uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
@@ -209,13 +167,13 @@ void loop_server()
     uint8_t len = sizeof(buf);
     if (rf95.recv(buf, &len))
     {
-      main_ctrl.server_cntr++;
+      rfm_ctrl.server_cntr++;
       //digitalWrite(led, HIGH);
       Serial.printf("Received: %s, RSSI= %d\n",buf,rf95.lastRssi());
       
       // Send a reply
       uint8_t data[40] = "And hello back to you";
-      sprintf((char*)data,"S->C;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
+      sprintf((char*)data,"S->C;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
       rf95.send(data, sizeof(data));
       rf95.waitPacketSent();
       Serial.printf("Sent a Reply: %s\n",(char*)data);
@@ -233,10 +191,10 @@ void loop_reliable_client()
     Serial.println("Sending to rf95_reliable_datagram_server");
       
     // Send a message to manager_server
-    sprintf((char*)data[0],"C->S;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
+    sprintf((char*)data[0],"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
     if (managerp->sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
     {
-      main_ctrl.client_cntr++;
+      rfm_ctrl.client_cntr++;
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;   
@@ -268,9 +226,9 @@ void loop_reliable_server()
 
           Serial.printf("Got Request from : 0x%02X : %s\n", from, (char*)buf);
           // Send a reply back to the originator client
-          sprintf((char*)data[1],"S->C;%05d;%05d",main_ctrl.client_cntr,main_ctrl.server_cntr);
+          sprintf((char*)data[1],"S->C;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
           if (managerp->sendtoWait(data[1], sizeof(data[1]), from))
-            main_ctrl.server_cntr = main_ctrl.client_cntr;
+            rfm_ctrl.server_cntr = rfm_ctrl.client_cntr;
           else
             Serial.println("sendtoWait failed");
         }
@@ -282,9 +240,10 @@ void loop_reliable_server()
     delay(100);
 }
 
-void loop()
+void rfm_loop(void)
 {
-  switch(main_ctrl.node_role)
+
+  switch(rfm_ctrl.node_role)
   {
       case NODE_ROLE_CLIENT:
         loop_client();
@@ -303,15 +262,5 @@ void loop()
         delay(5000);
         break;
   }
-}
-
-uint32_t io_run_time = millis();
-void loop1()
-{
-    if(millis() > io_run_time)
-    {
-        io_run_time = millis() + 100;
-        io_task();
-    }
 }
 
