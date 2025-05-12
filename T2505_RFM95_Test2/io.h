@@ -9,6 +9,10 @@
 
 #define PIN_WIRE_SDA        (12u)
 #define PIN_WIRE_SCL        (13u)
+#define PIN_UART0_TX        (0u)
+#define PIN_UART0_RX        (1u)
+#define PIN_UART1_TX        (8u)
+#define PIN_UART1_RX        (9u)
 
 
 #if BOARD == BOARD_T2504_PICO_RFM95_80x70

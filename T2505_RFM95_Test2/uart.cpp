@@ -1,8 +1,5 @@
 #include "main.h"
 #include "uart.h"
-#include "json.h"
-#include "rfm_receive.h"
-#include "rfm_send.h"
 #include "io.h"
 
 #define Uart Serial
@@ -48,7 +45,7 @@ typedef enum
 } tx_msg_et;
 
 
-uart_msg_st         uart;
+//uart_msg_st         uart;
 
 typedef struct
 {
@@ -70,10 +67,10 @@ typedef struct
 {
   String  str;
   field_st  field;
-  uint8_t rx_delim[field_nbr_of];
+  uint8_t rx_delim[FIELD_NBR_OF];
 } rx_st;
 
-
+/*
 
 uart_msg_st *uart_get_data_ptr(void)
 {
@@ -188,13 +185,14 @@ void uart_exec_cmnd(uart_cmd_et ucmd)
 
 void uart_print_rx_metadata(void)
 {
-    Serial.print("Length      "); Serial.println(uart.rx.len);
-    Serial.print("Avail       "); Serial.println(uart.rx.avail);
-    Serial.print("Status      "); Serial.println(uart.rx.status);
-    Serial.print("Module      "); Serial.println(uart.rx.module);
-    Serial.print("Address     "); Serial.println(uart.rx.addr);
-    Serial.print("Command     "); Serial.println(uart.rx.cmd);
-    Serial.print("Format      "); Serial.println(uart.rx.format);
+
+    // Serial.print("Length      "); Serial.println(uart.rx.len);
+    // Serial.print("Avail       "); Serial.println(uart.rx.avail);
+    // Serial.print("Status      "); Serial.println(uart.rx.status);
+    // Serial.print("Module      "); Serial.println(uart.rx.module);
+    // Serial.print("Address     "); Serial.println(uart.rx.addr);
+    // Serial.print("Command     "); Serial.println(uart.rx.cmd);
+    // Serial.print("Format      "); Serial.println(uart.rx.format);
 }    
 
-
+*/

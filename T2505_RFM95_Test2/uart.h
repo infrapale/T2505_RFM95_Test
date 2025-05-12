@@ -2,7 +2,7 @@
 #define __UART_H__
 #include "Arduino.h"
 #define UART_MAX_BLOCK_LEN  8
-
+/*
 typedef enum
 {
     UART_CMD_TRANSMIT_RAW   = 'T',
@@ -102,5 +102,6 @@ void uart_rx_build_rfm_array(void);
 /// @return
 void uart_exec_cmnd(uart_cmd_et ucmd);
 
+*/
 
 #endif

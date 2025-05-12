@@ -70,13 +70,12 @@ uint8_t io_get_switch_bm(void)
 {
     io_ctrl.switches = 0b00000000;
     #if BOARD == BOARD_T2504_PICO_RFM95_80x70
+    for (uint8_t i=0; i < 4; i++) pinMode(sw_pin[i], INPUT_PULLUP);
+    delay(20);
     for (uint8_t i=0; i < 4; i++)
     {
-        pinMode(sw_pin[i], INPUT_PULLUP);
-        delay(10);
-        if (digitalRead(sw_pin[i]) == LOW) io_ctrl.switches |= (1 << i);
-    }  
-    
+        if (digitalRead(sw_pin[i]) == HIGH) io_ctrl.switches |= (1 << i);
+    }     
     #endif
     return io_ctrl.switches;
 }

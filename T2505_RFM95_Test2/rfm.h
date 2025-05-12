@@ -1,6 +1,6 @@
 #ifndef __RFM_H__
 #define __RFM_H__
-
+#include "Arduino.h"
 
 typedef enum
 {
