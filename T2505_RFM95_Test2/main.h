@@ -16,6 +16,8 @@
 #define SW_BM_ADDR_0        0b00000001
 #define SW_BM_ADDR          0b00000011
 
+#define UARTX0              Serial
+
 #include "rfm.h"
 
 typedef struct 
@@ -23,6 +25,8 @@ typedef struct
     uint8_t      node_addr;
     node_role_et node_role;
     bool         test_activated;
+    bool         io_initialized;
+    uint8_t      serial_reserved;
 } main_ctrl_st;
 
 
@@ -39,3 +43,10 @@ typedef struct date_time
  } date_time_st;
 
 #endif
+
+
+bool sema_reserve_serial(uint8_t task_id);
+
+void sema_wait_serial(uint8_t task_id);
+
+void sema_release_serial(void);

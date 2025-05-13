@@ -5,11 +5,11 @@
 // It is designed to work with the other example rf95_reliable_datagram_server
 // Tested with Anarduino MiniWirelessLoRa, Rocket Scream Mini Ultra Pro with the RFM95W 
 
-#include <RHReliableDatagram.h>
 #include <RH_RF95.h>
 #include <SPI.h>
 
 #include "main.h"
+#include "atask.h"
 #include "rfm.h"
 #include "io.h"
 
@@ -21,16 +21,11 @@
 RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 //RH_RF95 rf95(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 
-//Class to manage message delivery and receipt, using the rf95 declared above
-//RHReliableDatagram manager(rf95, CLIENT_ADDRESS);
-RHReliableDatagram *managerp;
-// #ifdef LORA_CLIENT
-// RHReliableDatagram manager(rf95, CLIENT_ADDRESS);
-// node_ctrl_st node_ctrl = {NODE_CLIENT};
-// #else
-// RHReliableDatagram manager(rf95, SERVER_ADDRESS);
-// node_ctrl_st node_ctrl = {NODE_SERVER};
-// #endif
+void rfm_task(void);
+
+//                                  123456789012345   ival  next  state  prev  cntr flag  call backup
+atask_st rfm_task_handle       =   {"RFM  Task      ", 100,    0,     0,  255,    0,  1,  rfm_task };
+
 
 
 rfm_ctrl_st rfm_ctrl = { 0, NODE_ROLE_UNDEFINED, 0, 0};
@@ -61,18 +56,6 @@ void rfm_initialize(node_role_et node_role)
       io_blink(COLOR_GREEN, BLINK_SERVER);
       Serial.print("LoRa Server Node ");
       break;
-    case NODE_ROLE_RELIABLE_CLIENT: 
-      static RHReliableDatagram client_manager(rf95, CLIENT_ADDRESS);
-      managerp = &client_manager;
-      Serial.print("LoRa Reliable Client Node ");
-      io_blink(COLOR_GREEN, BLINK_RELIABLE_CLIENT);
-      break;
-    case NODE_ROLE_RELIABLE_SERVER:
-      static RHReliableDatagram server_manager(rf95, SERVER_ADDRESS);
-      managerp = &server_manager;
-      io_blink(COLOR_GREEN, BLINK_RELIABLE_SERVER);
-      Serial.print("LoRa Reliable Server Node ");
-      break;
     default:
       Serial.println("Node Role was not defined!!");
       io_blink(COLOR_RED, BLINK_FLASH);
@@ -82,7 +65,6 @@ void rfm_initialize(node_role_et node_role)
       break; 
   } 
   Serial.printf("Node Address %d\n", rfm_ctrl.node_addr);
-
   
   //rf95.setPreambleLength(uint16_t bytes);
 
@@ -90,12 +72,8 @@ void rfm_initialize(node_role_et node_role)
   {
     Serial.println("RFM95 was Initialized");
     rf95.setFrequency(868.0);
-    if ((rfm_ctrl.node_role == NODE_ROLE_RELIABLE_CLIENT ) || (rfm_ctrl.node_role == NODE_ROLE_RELIABLE_SERVER ))
-    {
-      if (!managerp->init()) Serial.println("RFM95 manager init failed");
-      else Serial.println("RFM95 Manager was Initialized");
-    }
-  }
+    rfm_ctrl.tindx =  atask_add_new(&rfm_task_handle);
+   }
   else
   {
      Serial.println("RFM95 init failed");
@@ -120,7 +98,6 @@ void rfm_initialize(node_role_et node_role)
   // the CAD timeout to non-zero:
 //  rf95.setCADTimeout(10000);
 
-
 }
 
 
@@ -129,13 +106,17 @@ void loop_client()
   
   // Send a message to rf95_server
   uint8_t data[40];
-
+  io_blink(COLOR_BLUE, BLINK_FAST_FLASH);
   sprintf((char*)data,"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
   Serial.println((char*)data);
   rf95.send(data, sizeof(data));
   rfm_ctrl.client_cntr++;
+ // Now wait for a reply
+  Serial.println("Wait for Packet to be Sent");
   rf95.waitPacketSent();
-  // Now wait for a reply
+
+  io_blink(COLOR_BLUE, BLINK_SHORT_FLASH);
+  Serial.println("Packet was sent, wait for reply");
   uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
   uint8_t len = sizeof(buf);
 
@@ -186,63 +167,8 @@ void loop_server()
   }
 }
 
-void loop_reliable_client()
+void rfm_task(void)
 {
-    Serial.println("Sending to rf95_reliable_datagram_server");
-      
-    // Send a message to manager_server
-    sprintf((char*)data[0],"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
-    if (managerp->sendtoWait(data[0], sizeof(data[0]), SERVER_ADDRESS))
-    {
-      rfm_ctrl.client_cntr++;
-      // Now wait for a reply from the server
-      uint8_t len = sizeof(buf);
-      uint8_t from;   
-      if (managerp->recvfromAckTimeout(buf, &len, 2000, &from))
-      {
-        Serial.printf("Got Reply from : 0x%02X : %s\n", from, (char*)buf);
-      }
-      else
-      {
-        Serial.println("No reply, is rf95_reliable_datagram_server running?");
-      }
-    }
-    else
-      Serial.println("sendtoWait failed");
-    delay(5000);
-}
-
-void loop_reliable_server()
-{
-      if (managerp->available())
-      {
-        // Wait for a message addressed to us from the client
-        uint8_t len = sizeof(buf);
-        uint8_t from;
-        if (managerp->recvfromAck(buf, &len, &from))
-        {
-          String Buff = (char*)buf;
-          String Str = Buff.substring(6,10);
-
-          Serial.printf("Got Request from : 0x%02X : %s\n", from, (char*)buf);
-          // Send a reply back to the originator client
-          sprintf((char*)data[1],"S->C;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
-          if (managerp->sendtoWait(data[1], sizeof(data[1]), from))
-            rfm_ctrl.server_cntr = rfm_ctrl.client_cntr;
-          else
-            Serial.println("sendtoWait failed");
-        }
-      }
-      else
-      {
-        // Serial.println("Manager is not available");
-      }
-    delay(100);
-}
-
-void rfm_loop(void)
-{
-
   switch(rfm_ctrl.node_role)
   {
       case NODE_ROLE_CLIENT:
@@ -251,15 +177,8 @@ void rfm_loop(void)
       case NODE_ROLE_SERVER:
         loop_server();
         break;
-      case NODE_ROLE_RELIABLE_CLIENT:
-        loop_client();
-        break;
-      case NODE_ROLE_RELIABLE_SERVER:
-        loop_server();
-        break;
       default:    
         Serial.println("Incorrect Node Role!!");
-        delay(5000);
         break;
   }
 }

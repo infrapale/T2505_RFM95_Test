@@ -13,6 +13,7 @@ typedef struct
 {
   uint8_t pattern_bit;
   uint8_t switches;
+  uint8_t tindx;
 } io_ctrl_st;
 
 io_ctrl_st io_ctrl;
@@ -64,6 +65,10 @@ void io_initialize(void)
     digitalWrite(led[i].pin, LOW);
   } 
   #endif
+}
+void io_task_initialize(void)
+{
+    //io_ctrl.tindx =  atask_add_new(&io_task_handle);
 }
 
 uint8_t io_get_switch_bm(void)

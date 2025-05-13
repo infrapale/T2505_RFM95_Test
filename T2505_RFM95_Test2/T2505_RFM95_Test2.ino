@@ -24,24 +24,29 @@ T2505_RFM95_Test2
       |                   |                    |                    |
       |                   |                    |                    |
 
-    remote_msg:         <;RSND;from;target;radio;pwr;sf;rnbr;bnbr;>;\n
-    remote_base_msg:    <;RS2B;from;target;radio;pwr;sf;rnbr;bnbr;>;
-    base_remote_rpl:    <;BR2R;from;target;radio;pwr;sf;rnbr;bnbr;>;
-    remote_status:      <;RSTA;from;target;radio;pwr;sf;rnbr;bnbr;>;\n
-    base_status:        <;BSTA;from;target;radio;pwr;sf;rnbr;bnbr;>;\n
-
+    remote_uart_send_msg:           <UR2B;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    remote_to_base_radio_msg:       <RR2B;from;target;radio;freq;pwr;sf;rnbr;bnbr>
+    base_to_remote_radio_reply:     <RB2R;from;target;radio;freq;pwr;sf;rnbr;bnbr>
+    remote_status:                  <USTA;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    base_status:                    <USTA;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    set_parameter:                  <USET;pindex;value>
+    get_parameter:                  <UGET;pindex;
+    parameter_value:                <UVAL;pindex;value>
+    
     msg_id  = 4 charcters
     from    = from node address 1..127
     target  = target node address  0..127
-    radio   = L4 | L8 | R4
+    radio   = LoRa = 1 | RFM69 = 2
+    freq    = 433 .. 868
     pwr     = power level:  5-20
     sf      = spreading factor
     rnbr    = remote send counter: 0-65000, incremented for each message sent by the remote
     bnbr    = base reply counter: 0-65000, incremented for each reply sent by the base
+    pindx   = parameter index
 
   Examples:
-    <;RSND;1;2;L8;20;12;1234;1001;>\n
-    <;RS2B;1;2;L8;20;12;1234;1001;>;
+    <RSND;1;2;L8;20;12;1234;1001>\n   (UART Command)
+    <RS2B;1;2;L8;20;12;1234;1001>     (Radio Message from server )
 
 
 
@@ -53,6 +58,7 @@ T2505_RFM95_Test2
 #include "atask.h"
 #include "io.h"
 #include "rfm.h"
+#include "uartx.h"
 
 
 void print_debug_task(void);
@@ -60,7 +66,7 @@ void print_debug_task(void);
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st debug_task_handle    =   {"Debug Task     ", 5000,    0,     0,  255,    0,  1,  print_debug_task };
 
-main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED, false };
+main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED, false, false, 0 };
 
 void setup() 
 {
@@ -79,7 +85,6 @@ void setup()
     while (!Serial) ; // Wait for serial port to be available
     // deactivate watchdog
     delay(2000);
-
   }
   Serial.print("T2505_RFM95_Test"); Serial.print(" Compiled: ");
   Serial.print(__DATE__); Serial.print(" ");
@@ -90,20 +95,18 @@ void setup()
   main_ctrl.node_addr =  sw_bm & SW_BM_ADDR;
   Serial.printf("Node Address %d\n", main_ctrl.node_addr);
 
-  delay(1000);  //ensure that IO was initialized
-  
+  io_initialize();
+  //while (!main_ctrl.io_initialized){delay(100);}
+  atask_initialize();
+  atask_add_new(&debug_task_handle);
+  uartx_initialize();
   rfm_initialize(main_ctrl.node_role);
-  
-
-  //atask_initialize();
-  //atask_add_new(&debug_task_handle);
-  //io_initialize();
-
 }
 
 void setup1(void)
 {
-    io_initialize();
+    main_ctrl.io_initialized = true;
+
     #if BOARD == BOARD_T2504_PICO_RFM95_80x70
     io_blink(COLOR_RED, BLINK_OFF);
     io_blink(COLOR_GREEN, BLINK_ON);
@@ -112,31 +115,45 @@ void setup1(void)
 }
 void loop()
 {
-  rfm_loop();
+  atask_run();
+
 }
 
 uint32_t io_run_time = millis();
 void loop1()
 {
+    
     if(millis() > io_run_time)
     {
         io_run_time = millis() + 100;
         io_task();
-    }
-    //Serial1.println("Print to UART0 TX");
-    if (Serial1.available())
-    {
-        String  rx_str;
-        rx_str = Serial1.readStringUntil('\n');
-        Serial1.print("RFM95 Unit Received: ");
-        Serial1.println(rx_str);
     }
 
 }
 
 void print_debug_task(void)
 {
-  atask_print_status(true);
-
+    atask_print_status(true);
 }
 
+bool sema_reserve_serial(uint8_t task_id)
+{
+  if(main_ctrl.serial_reserved == 0)
+  {
+    main_ctrl.serial_reserved = task_id;
+  }
+  return (main_ctrl.serial_reserved == task_id);
+}
+
+void sema_wait_serial(uint8_t task_id)
+{
+    while (!sema_reserve_serial(task_id))
+    {
+        Serial.printf("wait: %d reserved %d\n",task_id, main_ctrl.serial_reserved);
+    }
+}
+
+void sema_release_serial(void)
+{
+  main_ctrl.serial_reserved = 0;
+}

@@ -1,8 +1,9 @@
 #include "main.h"
-#include "uart.h"
+#include "uartx.h"
 #include "io.h"
+#include "atask.h"
 
-#define Uart Serial
+#define UARTX0 Serial
 
 typedef enum
 {
@@ -68,7 +69,50 @@ typedef struct
   String  str;
   field_st  field;
   uint8_t rx_delim[FIELD_NBR_OF];
+  bool      avail;
 } rx_st;
+
+typedef struct
+{
+    uint8_t tindx;
+    rx_st rx;
+} uartx_st;
+
+void uartx0_task(void);
+
+//                                  123456789012345   ival  next  state  prev  cntr flag  call backup
+atask_st uartx0_task_handle    =   {"UART 0 Task    ", 1000,    0,     0,  255,    0,  1,  uartx0_task };
+
+
+uartx_st uartx0;
+
+void uartx_initialize(void)
+{
+    uartx0.tindx =  atask_add_new(&uartx0_task_handle);
+    uartx0.rx.avail = false;
+}
+
+void uartx0_read(void)
+{
+    if (UARTX0.available())
+    {
+        Serial.println("rx is available");
+        uartx0.rx.str = UARTX0.readStringUntil('\n');
+        if (uartx0.rx.str.length()> 0)
+        {
+            uartx0.rx.avail = true;
+            //uart.rx.str.remove(uart.rx.str.length()-1);
+            Serial.println(uartx0.rx.str);
+        }
+    } 
+
+}
+
+void uartx0_task(void)
+{
+    uartx0_read();
+}
+
 
 /*
 
