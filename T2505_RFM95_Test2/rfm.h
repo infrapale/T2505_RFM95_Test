@@ -1,6 +1,7 @@
 #ifndef __RFM_H__
 #define __RFM_H__
 #include "Arduino.h"
+#include "atask.h"
 
 typedef enum
 {
@@ -23,6 +24,8 @@ typedef struct
     uint16_t     client_cntr;
     uint16_t     server_cntr;
     uint8_t      tindx;
+    atask_st    *taskp;
+    uint32_t    tatio;  
 } rfm_ctrl_st;
 
 void rfm_initialize(node_role_et node_role);

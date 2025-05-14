@@ -16,7 +16,7 @@
 #define SW_BM_ADDR_0        0b00000001
 #define SW_BM_ADDR          0b00000011
 
-#define UARTX0              Serial
+//#define UARTX0              Serial1
 
 #include "rfm.h"
 

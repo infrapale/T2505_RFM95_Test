@@ -24,11 +24,21 @@ RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 void rfm_task(void);
 
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
-atask_st rfm_task_handle       =   {"RFM  Task      ", 100,    0,     0,  255,    0,  1,  rfm_task };
+atask_st rfm_task_handle       =  {"RFM  Task      ",100,    0,     0,  255,    0,  1,  rfm_task };
 
 
 
-rfm_ctrl_st rfm_ctrl = { 0, NODE_ROLE_UNDEFINED, 0, 0};
+//rfm_ctrl_st rfm_ctrl = { 0, NODE_ROLE_UNDEFINED, 0, 0, NULL, 0};
+rfm_ctrl_st rfm_ctrl = 
+{ 
+  .node_addr= 0, 
+  .node_role = NODE_ROLE_UNDEFINED, 
+  .client_cntr = 0, 
+  .server_cntr = 0, 
+  .tindx = 0,
+  .taskp = NULL, 
+  .tatio = 0
+};
 
 uint8_t data[2][32]=
 {    
@@ -73,39 +83,101 @@ void rfm_initialize(node_role_et node_role)
     Serial.println("RFM95 was Initialized");
     rf95.setFrequency(868.0);
     rfm_ctrl.tindx =  atask_add_new(&rfm_task_handle);
+    rfm_ctrl.taskp = atask_get_task(rfm_ctrl.tindx);
+
    }
   else
   {
      Serial.println("RFM95 init failed");
      io_blink(COLOR_RED, BLINK_SHORT_FLASH);
   }
-
-
-  // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
-
-  // The default transmitter power is 13dBm, using PA_BOOST.
-  // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
-  // you can set transmitter powers from 2 to 20 dBm:
-//  rf95.setTxPower(20, false);
-  // If you are using Modtronix inAir4 or inAir9, or any other module which uses the
-  // transmitter RFO pins and not the PA_BOOST pins
-  // then you can configure the power transmitter power for 0 to 15 dBm and with useRFO true. 
-  // Failure to do that will result in extremely low transmit powers.
-//  rf95.setTxPower(14, true);
-
-  // You can optionally require this module to wait until Channel Activity
-  // Detection shows no activity on the channel before transmitting by setting
-  // the CAD timeout to non-zero:
-//  rf95.setCADTimeout(10000);
-
+ 
 }
-
 
 void loop_client()
 {
-  
+  static uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+  static uint8_t len = sizeof(buf);
   // Send a message to rf95_server
-  uint8_t data[40];
+  static uint8_t data[40];
+  switch(rfm_ctrl.taskp->state)
+  {
+    case 0:
+      io_blink(COLOR_BLUE, BLINK_ON);
+      rfm_ctrl.tatio = millis() + 1000;
+      rfm_ctrl.taskp->state = 10;
+      break;
+    case 10:
+      if (millis() > rfm_ctrl.tatio)
+      {
+        io_blink(COLOR_BLUE, BLINK_FAST_FLASH);
+        sprintf((char*)data,"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
+        Serial.println((char*)data);
+        rf95.send(data, sizeof(data));
+        rfm_ctrl.client_cntr++;
+        // Now wait for a reply
+        rfm_ctrl.taskp->state = 20;
+      }
+      break;
+    case 20:
+      Serial.println("Wait for Packet to be Sent");
+      rf95.waitPacketSent();
+      Serial.flush();
+      io_blink(COLOR_BLUE, BLINK_SHORT_FLASH);
+      Serial.println("Packet was sent, wait for reply");
+      rfm_ctrl.tatio = millis() + 3000;
+      //rfm_ctrl.taskp->state = 30;
+      //break;
+    //case 30:
+      if (rf95.waitAvailableTimeout(4000))
+      { 
+        // Should be a reply message for us now   
+        if (rf95.recv(buf, &len))
+        {
+            Serial.printf("Received Reply: %s, RSSI= %d\n",(char*)buf,rf95.lastRssi());
+            io_blink(COLOR_GREEN, BLINK_ON);
+            rfm_ctrl.tatio = millis() + 5000;
+            rfm_ctrl.taskp->state = 40;
+        }
+        else
+        {
+          Serial.println("recv failed");
+          io_blink(COLOR_RED, BLINK_FAST_FLASH);          
+          rfm_ctrl.tatio = millis() + 5000;
+          rfm_ctrl.taskp->state = 100;
+        }
+      }
+      else 
+      {
+        //if (millis() > rfm_ctrl.tatio)
+        {
+          Serial.println("No reply, is rf95_server running?");
+          io_blink(COLOR_RED, BLINK_ON);
+          rfm_ctrl.tatio = millis() + 5000;
+          rfm_ctrl.taskp->state = 100;
+        }
+      }
+
+      break;
+    case 40:
+      if (millis() > rfm_ctrl.tatio) rfm_ctrl.taskp->state = 200;
+      break;
+    case 100:
+      if (millis() > rfm_ctrl.tatio) rfm_ctrl.taskp->state = 200;
+      break;
+    case 200:   // return to start
+        io_blink(COLOR_RED, BLINK_OFF);
+        io_blink(COLOR_GREEN, BLINK_OFF);
+        io_blink(COLOR_BLUE, BLINK_OFF);
+        rfm_ctrl.taskp->state = 0;
+        break;
+  }
+  if (rfm_ctrl.taskp->prev_state != rfm_ctrl.taskp->state)
+    Serial.printf("loop client state: %d -> %d\n", rfm_ctrl.taskp->prev_state, rfm_ctrl.taskp->state);
+  Serial.flush();
+
+
+  /*
   io_blink(COLOR_BLUE, BLINK_FAST_FLASH);
   sprintf((char*)data,"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
   Serial.println((char*)data);
@@ -114,7 +186,7 @@ void loop_client()
  // Now wait for a reply
   Serial.println("Wait for Packet to be Sent");
   rf95.waitPacketSent();
-
+  Serial.flush();
   io_blink(COLOR_BLUE, BLINK_SHORT_FLASH);
   Serial.println("Packet was sent, wait for reply");
   uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
@@ -135,8 +207,10 @@ void loop_client()
   else
   {
     Serial.println("No reply, is rf95_server running?");
+    io_blink(COLOR_RED, BLINK_FAST_FLASH);
   }
   delay(4000);
+  */
 }
 
 void loop_server()
