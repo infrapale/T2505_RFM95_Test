@@ -5,6 +5,7 @@
 // It is designed to work with the other example rf95_reliable_datagram_server
 // Tested with Anarduino MiniWirelessLoRa, Rocket Scream Mini Ultra Pro with the RFM95W 
 
+#include "Arduino.h"
 #include <RHReliableDatagram.h>
 #include <RH_RF95.h>
 #include <SPI.h>
@@ -145,6 +146,7 @@ void setup()
       while(true){};
       break; 
   } 
+  
   Serial.printf("Node Address %d\n", main_ctrl.node_addr);
 
   //atask_initialize();
