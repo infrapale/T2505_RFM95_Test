@@ -112,20 +112,20 @@ void loop_client()
       {
         io_blink(COLOR_BLUE, BLINK_FAST_FLASH);
         sprintf((char*)data,"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
-        Serial.println((char*)data);
+        //Serial.println((char*)data);
         rf95.send(data, sizeof(data));
         rfm_ctrl.client_cntr++;
         // Now wait for a reply
-        rfm_ctrl.taskp->state = 20;
+        //rfm_ctrl.taskp->state = 20;
       }
-      break;
-    case 20:
-      Serial.println("Wait for Packet to be Sent");
+      //break;
+    //case 20:
+      //Serial.println("Wait for Packet to be Sent");
       rf95.waitPacketSent();
-      Serial.flush();
+      //Serial.flush();
       io_blink(COLOR_BLUE, BLINK_SHORT_FLASH);
-      Serial.println("Packet was sent, wait for reply");
-      rfm_ctrl.tatio = millis() + 3000;
+      //Serial.println("Packet was sent, wait for reply");
+      //rfm_ctrl.tatio = millis() + 3000;
       //rfm_ctrl.taskp->state = 30;
       //break;
     //case 30:
