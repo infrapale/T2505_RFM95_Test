@@ -54,6 +54,8 @@ T2505_RFM95_Test2
 
 ******************************************************************************/
 #include <SPI.h>
+#include <RH_RF95.h>
+
 #include "main.h"
 #include "atask.h"
 #include "io.h"
@@ -62,6 +64,7 @@ T2505_RFM95_Test2
 
 
 void print_debug_task(void);
+RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st debug_task_handle    =   {"Debug Task     ", 5000,    0,     0,  255,    0,  1,  print_debug_task };
@@ -70,13 +73,13 @@ main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED, false, false, 0 };
 
 void setup() 
 {
-  Serial1.setTX(PIN_UART0_TX);   // UART0
-  Serial1.setRX(PIN_UART0_RX);
-  Serial2.setTX(PIN_UART1_TX);   // UART1
-  Serial2.setRX(PIN_UART1_RX);
+  // Serial1.setTX(PIN_UART0_TX);   // UART0
+  // Serial1.setRX(PIN_UART0_RX);
+  // Serial2.setTX(PIN_UART1_TX);   // UART1
+  // Serial2.setRX(PIN_UART1_RX);
   Serial.begin(9600);
-  Serial1.begin(9600);
-  Serial2.begin(9600);
+  // Serial1.begin(9600);
+  // Serial2.begin(9600);
 
   uint8_t sw_bm = io_get_switch_bm();
   if ((sw_bm & SW_BM_TEST) == 0)
@@ -96,40 +99,84 @@ void setup()
   Serial.printf("Node Address %d\n", main_ctrl.node_addr);
 
   io_initialize();
+  if (rf95.init())
+  {
+    Serial.println("RFM95 was Initialized");
+    rf95.setFrequency(868.0);
+    //rfm_ctrl.tindx =  atask_add_new(&rfm_task_handle);
+    //rfm_ctrl.taskp = atask_get_task(rfm_ctrl.tindx);
+
+   }
+  else
+  {
+     Serial.println("RFM95 init failed");
+     io_blink(COLOR_RED, BLINK_SHORT_FLASH);
+  }
+
   //while (!main_ctrl.io_initialized){delay(100);}
-  atask_initialize();
-  atask_add_new(&debug_task_handle);
-  uartx_initialize();
-  rfm_initialize(main_ctrl.node_role);
+  //atask_initialize();
+  //atask_add_new(&debug_task_handle);
+  //uartx_initialize();
+  //rfm_initialize(main_ctrl.node_role);
 }
 
-void setup1(void)
-{
-    main_ctrl.io_initialized = true;
+// void setup1(void)
+// {
+//     main_ctrl.io_initialized = true;
 
-    #if BOARD == BOARD_T2504_PICO_RFM95_80x70
-    io_blink(COLOR_RED, BLINK_OFF);
-    io_blink(COLOR_GREEN, BLINK_ON);
-    io_blink(COLOR_BLUE, BLINK_OFF);
-    #endif
-}
+//     #if BOARD == BOARD_T2504_PICO_RFM95_80x70
+//     io_blink(COLOR_RED, BLINK_OFF);
+//     io_blink(COLOR_GREEN, BLINK_ON);
+//     io_blink(COLOR_BLUE, BLINK_OFF);
+//     #endif
+// }
 void loop()
 {
-  atask_run();
+  //atask_run();
+    Serial.println("Sending to rf95_server");
+  // Send a message to rf95_server
+  uint8_t data[] = "Hello World!";
+  rf95.send(data, sizeof(data));
+  
+  rf95.waitPacketSent();
+  // Now wait for a reply
+  uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+  uint8_t len = sizeof(buf);
 
-}
-
-uint32_t io_run_time = millis();
-void loop1()
-{
-    
-    if(millis() > io_run_time)
-    {
-        io_run_time = millis() + 100;
-        io_task();
+  if (rf95.waitAvailableTimeout(3000))
+  { 
+    // Should be a reply message for us now   
+    if (rf95.recv(buf, &len))
+   {
+      Serial.print("got reply: ");
+      Serial.println((char*)buf);
+//      Serial.print("RSSI: ");
+//      Serial.println(rf95.lastRssi(), DEC);    
     }
+    else
+    {
+      Serial.println("recv failed");
+    }
+  }
+  else
+  {
+    Serial.println("No reply, is rf95_server running?");
+  }
+  delay(400);
 
 }
+
+// uint32_t io_run_time = millis();
+// void loop1()
+// {
+    
+//     if(millis() > io_run_time)
+//     {
+//         io_run_time = millis() + 100;
+//         io_task();
+//     }
+
+// }
 
 void print_debug_task(void)
 {

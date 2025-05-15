@@ -94,12 +94,13 @@ void rfm_initialize(node_role_et node_role)
  
 }
 
+uint8_t txdata[] = "Hello World!";
+
 void loop_client()
 {
-  static uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-  static uint8_t len = sizeof(buf);
+        uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+        uint8_t len = sizeof(buf);
   // Send a message to rf95_server
-  static uint8_t data[40];
   switch(rfm_ctrl.taskp->state)
   {
     case 0:
@@ -108,57 +109,53 @@ void loop_client()
       rfm_ctrl.taskp->state = 10;
       break;
     case 10:
-      if (millis() > rfm_ctrl.tatio)
-      {
         io_blink(COLOR_BLUE, BLINK_FAST_FLASH);
-        sprintf((char*)data,"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
+        //sprintf((char*)data[1],"C->S;%05d;%05d",rfm_ctrl.client_cntr,rfm_ctrl.server_cntr);
         //Serial.println((char*)data);
-        rf95.send(data, sizeof(data));
-        rfm_ctrl.client_cntr++;
+        rf95.send(txdata, sizeof(txdata));
+        //rfm_ctrl.client_cntr++;
         // Now wait for a reply
         //rfm_ctrl.taskp->state = 20;
-      }
-      //break;
-    //case 20:
-      //Serial.println("Wait for Packet to be Sent");
-      rf95.waitPacketSent();
-      //Serial.flush();
-      io_blink(COLOR_BLUE, BLINK_SHORT_FLASH);
-      //Serial.println("Packet was sent, wait for reply");
-      //rfm_ctrl.tatio = millis() + 3000;
-      //rfm_ctrl.taskp->state = 30;
-      //break;
-    //case 30:
-      if (rf95.waitAvailableTimeout(4000))
-      { 
-        // Should be a reply message for us now   
-        if (rf95.recv(buf, &len))
-        {
-            Serial.printf("Received Reply: %s, RSSI= %d\n",(char*)buf,rf95.lastRssi());
-            io_blink(COLOR_GREEN, BLINK_ON);
+        //break;
+        //case 20:
+        //Serial.println("Wait for Packet to be Sent");
+        rf95.waitPacketSent();
+        //Serial.flush();
+        //io_blink(COLOR_BLUE, BLINK_SHORT_FLASH);
+        //Serial.println("Packet was sent, wait for reply");
+        //rfm_ctrl.tatio = millis() + 3000;
+        //rfm_ctrl.taskp->state = 30;
+        //break;
+        //case 30:
+        if (rf95.waitAvailableTimeout(4000))
+        { 
+          // Should be a reply message for us now   
+          if (rf95.recv(buf, &len))
+          {
+              Serial.printf("Received Reply: %s, RSSI= %d\n",(char*)buf,rf95.lastRssi());
+              io_blink(COLOR_GREEN, BLINK_ON);
+              rfm_ctrl.tatio = millis() + 5000;
+              rfm_ctrl.taskp->state = 40;
+          }
+          else
+          {
+            Serial.println("recv failed");
+            io_blink(COLOR_RED, BLINK_FAST_FLASH);          
             rfm_ctrl.tatio = millis() + 5000;
-            rfm_ctrl.taskp->state = 40;
+            rfm_ctrl.taskp->state = 100;
+          }
         }
-        else
+        else 
         {
-          Serial.println("recv failed");
-          io_blink(COLOR_RED, BLINK_FAST_FLASH);          
-          rfm_ctrl.tatio = millis() + 5000;
-          rfm_ctrl.taskp->state = 100;
+          //if (millis() > rfm_ctrl.tatio)
+          {
+            Serial.println("No reply, is rf95_server running?");
+            io_blink(COLOR_RED, BLINK_ON);
+            rfm_ctrl.tatio = millis() + 5000;
+            rfm_ctrl.taskp->state = 100;
+          }
         }
-      }
-      else 
-      {
-        //if (millis() > rfm_ctrl.tatio)
-        {
-          Serial.println("No reply, is rf95_server running?");
-          io_blink(COLOR_RED, BLINK_ON);
-          rfm_ctrl.tatio = millis() + 5000;
-          rfm_ctrl.taskp->state = 100;
-        }
-      }
-
-      break;
+        break;
     case 40:
       if (millis() > rfm_ctrl.tatio) rfm_ctrl.taskp->state = 200;
       break;
@@ -243,17 +240,51 @@ void loop_server()
 
 void rfm_task(void)
 {
-  switch(rfm_ctrl.node_role)
-  {
-      case NODE_ROLE_CLIENT:
-        loop_client();
-        break;
-      case NODE_ROLE_SERVER:
-        loop_server();
-        break;
-      default:    
-        Serial.println("Incorrect Node Role!!");
-        break;
+
+   Serial.println("Sending to rf95_server");
+  // Send a message to rf95_server
+  uint8_t data[] = "Hello World!";
+  rf95.send(data, sizeof(data));
+  
+  rf95.waitPacketSent();
+  // Now wait for a reply
+  uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+  uint8_t len = sizeof(buf);
+
+  if (rf95.waitAvailableTimeout(3000))
+  { 
+    // Should be a reply message for us now   
+    if (rf95.recv(buf, &len))
+   {
+      Serial.print("got reply: ");
+      Serial.println((char*)buf);
+//      Serial.print("RSSI: ");
+//      Serial.println(rf95.lastRssi(), DEC);    
+    }
+    else
+    {
+      Serial.println("recv failed");
+    }
   }
+  else
+  {
+    Serial.println("No reply, is rf95_server running?");
+  }
+  delay(400);
+
+  // switch(rfm_ctrl.node_role)
+  // {
+  //     case NODE_ROLE_CLIENT:
+  //       loop_client();
+  //       break;
+  //     case NODE_ROLE_SERVER:
+  //       loop_server();
+  //       break;
+  //     default:    
+  //       Serial.println("Incorrect Node Role!!");
+  //       break;
+  // }
 }
+
+
 

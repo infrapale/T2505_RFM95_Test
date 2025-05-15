@@ -28,9 +28,9 @@ typedef struct
     uint32_t    tatio;  
 } rfm_ctrl_st;
 
-void rfm_initialize(node_role_et node_role);
+//void rfm_initialize(node_role_et node_role);
 
-void rfm_loop(void);
+//void rfm_loop(void);
 
 
 
