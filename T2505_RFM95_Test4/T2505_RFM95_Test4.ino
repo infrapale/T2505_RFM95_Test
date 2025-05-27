@@ -4,6 +4,7 @@
 #include "rfm.h"
 #include "main.h"
 #include "io.h"
+#include "parser.h"
 
 // #define PIN_RFM_MOSI        (19u)
 // #define PIN_RFM_MISO        (16u)
@@ -63,7 +64,9 @@ void setup()
   Serial.printf("Node Address %d\n", main_ctrl.node_addr);
 
   rfm_initialize(main_ctrl.node_role); 
+  parser_initialize();
 }
+
 void setup1(void)
 {
     #if BOARD == BOARD_T2504_PICO_RFM95_80x70

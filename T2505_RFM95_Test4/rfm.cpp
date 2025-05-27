@@ -4,6 +4,7 @@
 #include "main.h"
 #include "io.h"
 #include "rfm.h"
+#include "parser.h"
 
 
 // Singleton instance of the radio driver
@@ -36,6 +37,8 @@ void rfm_initialize(node_role_et node_role)
 
 uint32_t rfm_timeout;
 uint8_t  data[] = "Hello World!";
+uint8_t sdata[] = "And hello back to you";
+
 uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
 uint8_t len = sizeof(buf);
 
@@ -45,8 +48,10 @@ void loop_client(void)
     {
         case 0:
             rfm_task_handle.state = 10;
+            io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
             break;
         case 10:
+
             Serial.println("Sending to rf95_server");
             // Send a message to rf95_server
             rf95.send(data, sizeof(data));
@@ -58,6 +63,10 @@ void loop_client(void)
             {
                 rfm_task_handle.state = 30;
             }
+            else
+            {
+              rfm_task_handle.state = 40;
+            }
             break;
         case 30:
             // Should be a reply message for us now   
@@ -68,18 +77,21 @@ void loop_client(void)
                 Serial.println((char*)buf);
                 Serial.print("RSSI: ");
                 Serial.println(rfm_ctrl.rssi, DEC);    
+                rfm_task_handle.state = 50;  
             }
             else
             {
                 Serial.println("recv failed");
-            }
-            rfm_task_handle.state = 50;  
+                rfm_task_handle.state = 40;  
+            }            
             break;
         case 40:
+            io_blink(COLOR_RED, BLINK_FAST_FLASH);           
             Serial.println("No reply, is rf95_server running?");
             rfm_task_handle.state = 50;  
             break;
-        case 50:    ; 
+        case 50:    
+            io_blink(COLOR_BLUE, BLINK_OFF); 
             rfm_timeout = millis() + 5000;
             rfm_task_handle.state = 60;  
             break;
@@ -87,6 +99,7 @@ void loop_client(void)
             if(millis() > rfm_timeout) rfm_task_handle.state = 100; 
             break;
         case 100:
+            io_blink(COLOR_RED, BLINK_OFF);
             rfm_task_handle.state = 0; 
             break;
 
@@ -95,33 +108,82 @@ void loop_client(void)
 
 void loop_server(void)
 {
-  if (rf95.available())
-  {
-    // Should be a message for us now   
-    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-    uint8_t len = sizeof(buf);
-    if (rf95.recv(buf, &len))
+    switch(rfm_task_handle.state)
     {
-      //digitalWrite(led, HIGH);
-//      RH_RF95::printBuffer("request: ", buf, len);
-      Serial.print("got request: ");
-      Serial.println((char*)buf);
-//      Serial.print("RSSI: ");
-//      Serial.println(rf95.lastRssi(), DEC);
+        case 0:
+            rfm_task_handle.state = 10;
+            break;
+        case 10:
+            if (rf95.available())
+            {
+                // Should be a message for us now   
+                if (rf95.recv(buf, &len))
+                {
+                  io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
+                  //digitalWrite(led, HIGH);
+                  //      RH_RF95::printBuffer("request: ", buf, len);
+                  Serial.print("got request: ");
+                  Serial.println((char*)buf);
+                  //      Serial.print("RSSI: ");
+                  //      Serial.println(rf95.lastRssi(), DEC)
+                  rfm_task_handle.state = 20;
+                }
+                else 
+                {
+                  io_blink(COLOR_RED, BLINK_FAST_FLASH); 
+                  rfm_task_handle.state = 50;
+                }
+            }
+            break;
+        case 20:
+            // Send a reply
+            rf95.send(sdata, sizeof(data));
+            rf95.waitPacketSent();
+            Serial.println("Sent a reply");
+            rfm_task_handle.state = 100;
+            break;
+        case 50:
+             Serial.println("recv failed");
+            rfm_task_handle.state = 100;
+            break;
+        case 100:
+            io_blink(COLOR_BLUE, BLINK_OFF);
+            io_blink(COLOR_RED, BLINK_OFF);
+            rfm_task_handle.state = 10;
+            break;
+
+
+    }
+}  
+
+
+//   if (rf95.available())
+//   {
+//     // Should be a message for us now   
+//     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+//     uint8_t len = sizeof(buf);
+//     if (rf95.recv(buf, &len))
+//     {
+//       //digitalWrite(led, HIGH);
+// //      RH_RF95::printBuffer("request: ", buf, len);
+//       Serial.print("got request: ");
+//       Serial.println((char*)buf);
+// //      Serial.print("RSSI: ");
+// //      Serial.println(rf95.lastRssi(), DEC);
       
-      // Send a reply
-      uint8_t data[] = "And hello back to you";
-      rf95.send(data, sizeof(data));
-      rf95.waitPacketSent();
-      Serial.println("Sent a reply");
-       //digitalWrite(led, LOW);
-    }
-    else
-    {
-      Serial.println("recv failed");
-    }
-  }
-}
+//       // Send a reply
+//       uint8_t data[] = "And hello back to you";
+//       rf95.send(data, sizeof(data));
+//       rf95.waitPacketSent();
+//       Serial.println("Sent a reply");
+//        //digitalWrite(led, LOW);
+//     }
+//     else
+//     {
+//       Serial.println("recv failed");
+//     }
+//   }
+// }
 
 void rfm_task(void)
 {   

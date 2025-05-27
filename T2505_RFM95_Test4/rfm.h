@@ -24,6 +24,12 @@ typedef struct
     uint32_t    tatio;  
 } rfm_ctrl_st;
 
+typedef struct
+{
+    uint16_t send_cntr;
+    uint16_t rec_cntr;
+} client_msg_st;
+
 void rfm_initialize(node_role_et node_role);
 
 void rfm_task(void);

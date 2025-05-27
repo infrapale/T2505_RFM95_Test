@@ -15,6 +15,7 @@
 #define SW_BM_ADDR_1        0b00000010
 #define SW_BM_ADDR_0        0b00000001
 #define SW_BM_ADDR          0b00000011
+#define DEBUG_PRINT
 
 //#define UARTX0              Serial1
 
