@@ -1,6 +1,7 @@
 #ifndef __PARSER_H__
 #define __PARSER_H__
 
+#define CMD_TAG_LEN 5
 
 typedef enum
 {
@@ -53,7 +54,7 @@ typedef enum
 typedef struct
 {
   char      start;
-  char      cmnd[5];
+  char      cmnd[CMD_TAG_LEN];
   uint8_t   from;
   uint8_t   target;
   uint8_t   radio;

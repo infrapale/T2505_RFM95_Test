@@ -31,7 +31,7 @@ void read_uart(void)
         if (rx_msg.str.length()> 0)
         {
             rx_msg.avail = true;
-            //uart.rx.str.remove(uart.rx.str.length()-1);
+            //rx_msg.str.remove(rx_msg.str.length()-1);
             Serial.println(rx_msg.str);
         }
     } 
@@ -57,6 +57,40 @@ void parse_rx_frame(void)
         #endif
     }
     else rx_msg.status = STATUS_INCORRECT_FRAME;
+}
+
+void uart_build_node_from_rx_str(void)
+{
+    uint8_t indx1;
+    uint8_t indx2;
+    //<UR2B;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+
+
+    indx1 = 1;  //rx_msg.str.indexOf(':')
+    indx2 = rx_msg.str.indexOf(';');
+    rx_msg.str.substring(indx1,indx2).toCharArray( rx_msg.field.cmnd, CMD_TAG_LEN);
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf(';',indx1+1);
+    rx_msg.field.from = rx_msg.str.substring(indx1,indx2).toInt();
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf(';',indx1+1);
+    rx_msg.field.target = rx_msg.str.substring(indx1,indx2).toInt();
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf(';',indx1+1);
+    rx_msg.field.radio = rx_msg.str.substring(indx1,indx2).toInt();
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf(';',indx1+1);
+    rx_msg.field.power = rx_msg.str.substring(indx1,indx2).toInt();
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf(';',indx1+1);
+    rx_msg.field.sf = rx_msg.str.substring(indx1,indx2).toInt();
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf(';',indx1+1);
+    rx_msg.field.remote_nbr = rx_msg.str.substring(indx1,indx2).toInt();
+    indx1 = indx2+1;
+    indx2 = rx_msg.str.indexOf('>',indx1+1);
+    rx_msg.field.base_nbr = rx_msg.str.substring(indx1,indx2).toInt();
+     
 }
 
 void parser_task(void)
