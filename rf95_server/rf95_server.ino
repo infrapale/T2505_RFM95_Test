@@ -1,12 +1,3 @@
-// rf95_client.pde
-// -*- mode: C++ -*-
-// Example sketch showing how to create a simple messageing client
-// with the RH_RF95 class. RH_RF95 class does not provide for addressing or
-// reliability, so you should only use RH_RF95 if you do not need the higher
-// level messaging abilities.
-// It is designed to work with the other example rf95_server
-// Tested with Anarduino MiniWirelessLoRa, Rocket Scream Mini Ultra Pro with
-// the RFM95W, Adafruit Feather M0 with RFM95
 
 #include <SPI.h>
 #include <RH_RF95.h>
@@ -23,7 +14,7 @@
 //RH_RF95 rf95;
 RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 
-int led = 25;
+int led = 22;
 
 void setup() 
 {
@@ -35,6 +26,8 @@ void setup()
   //pinMode(led, OUTPUT);     
   Serial.begin(9600);
   while (!Serial) ; // Wait for serial port to be available
+  delay(2000);
+  Serial.println("RF95 Server");
   if (!rf95.init())
     Serial.println("init failed");  
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
@@ -74,7 +67,11 @@ void loop()
       rf95.send(data, sizeof(data));
       rf95.waitPacketSent();
       Serial.println("Sent a reply");
+<<<<<<< HEAD
       // digitalWrite(led, LOW);
+=======
+       //digitalWrite(led, LOW);
+>>>>>>> cbcc119ef8524a6b80b11379c8e6c56ad0ad345e
     }
     else
     {

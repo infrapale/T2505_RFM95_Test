@@ -1,0 +1,54 @@
+/******************************************************************************
+T2505_RFM95_Test2
+*******************************************************************************
+
+-------------       --------------       --------------       --------------
+| Remote    |       |  Remote    |       |  Base      |       |  Base      |
+| Client    |       |  Client    |       |  Server    |       |  Server    |
+| Master    |       |  RFM       |       |  RFM       |       |  Master    |
+-------------       --------------       --------------       --------------
+      |                   |                    |                    |
+      |  remote_cmd       |                    |                    |
+      |------------------>|                    |                    |
+      |                   | remote_base_msg    |                    |
+      |                   |------------------->|                    |
+      |                   |                    |                    |
+      |                   | base_remote_rpl    |                    |
+      |                   |<------------------ |                    |
+      
+      |                   |                    |                    |
+      |                   |                    | base_status        |
+      |                   |                    |------------------->|
+      |  remote_status    |                    |                    |
+      |<------------------|                    |                    |
+      |                   |                    |                    |
+      |                   |                    |                    |
+      |                   |                    |                    |
+
+    remote_uart_send_msg:           <UR2B;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    remote_to_base_radio_msg:       <RR2B;from;target;radio;freq;pwr;sf;rnbr;bnbr>
+    base_to_remote_radio_reply:     <RB2R;from;target;radio;freq;pwr;sf;rnbr;bnbr>
+    remote_status:                  <USTA;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    base_status:                    <USTA;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    set_parameter:                  <USET;pindex;value>
+    get_parameter:                  <UGET;pindex;
+    parameter_value:                <UVAL;pindex;value>
+    
+    msg_id  = 4 charcters
+    from    = from node address 1..127
+    target  = target node address  0..127
+    radio   = LoRa = 1 | RFM69 = 2
+    freq    = 433 .. 868
+    pwr     = power level:  5-20
+    sf      = spreading factor
+    rnbr    = remote send counter: 0-65000, incremented for each message sent by the remote
+    bnbr    = base reply counter: 0-65000, incremented for each reply sent by the base
+    pindx   = parameter index
+
+  Examples:
+    <RSND;1;2;L8;20;12;1234;1001>\n   (UART Command)
+    <RS2B;1;2;L8;20;12;1234;1001>     (Radio Message from server )
+
+
+
+*******************************************************************************
