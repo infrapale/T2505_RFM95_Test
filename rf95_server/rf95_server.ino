@@ -32,7 +32,7 @@ void setup()
 //  pinMode(4, OUTPUT);
 //  digitalWrite(4, HIGH);
 
-  pinMode(led, OUTPUT);     
+  //pinMode(led, OUTPUT);     
   Serial.begin(9600);
   while (!Serial) ; // Wait for serial port to be available
   if (!rf95.init())
@@ -62,7 +62,7 @@ void loop()
     uint8_t len = sizeof(buf);
     if (rf95.recv(buf, &len))
     {
-      digitalWrite(led, HIGH);
+      //digitalWrite(led, HIGH);
 //      RH_RF95::printBuffer("request: ", buf, len);
       Serial.print("got request: ");
       Serial.println((char*)buf);
@@ -74,7 +74,7 @@ void loop()
       rf95.send(data, sizeof(data));
       rf95.waitPacketSent();
       Serial.println("Sent a reply");
-       digitalWrite(led, LOW);
+      // digitalWrite(led, LOW);
     }
     else
     {
