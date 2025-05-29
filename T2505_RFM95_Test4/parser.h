@@ -46,6 +46,7 @@ typedef enum
 typedef enum
 {
   STATUS_UNDEFINED = 0,
+  STATUS_AVAILABLE,
   STATUS_OK_FOR_ME,
   STATUS_INCORRECT_FRAME,
 } msg_status_et;

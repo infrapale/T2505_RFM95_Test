@@ -33,6 +33,7 @@ void read_uart(void)
             rx_msg.avail = true;
             //rx_msg.str.remove(rx_msg.str.length()-1);
             Serial.println(rx_msg.str);
+            rx_msg.status = STATUS_AVAILABLE;
         }
     } 
 
@@ -45,7 +46,9 @@ void parse_rx_frame(void)
     bool do_continue = true;
     uint8_t len;
     rx_msg.str.trim();
+    Serial.print(rx_msg.str);
     rx_msg.len = rx_msg.str.length();
+    Serial.println(rx_msg.len);
     if ((rx_msg.str.charAt(0) != '<') || 
         (rx_msg.str.charAt(rx_msg.len-1) != '>'))  do_continue = false;
     if (do_continue)
@@ -59,11 +62,18 @@ void parse_rx_frame(void)
     else rx_msg.status = STATUS_INCORRECT_FRAME;
 }
 
-void uart_build_node_from_rx_str(void)
+char msg_str[60];
+void parser_build_msg_from_fields(char *msg, msg_st *msg_data)
+{
+    sprintf(msg,"<%s;%d>");
+}
+
+void parser_build_fileds_from_rx_str(void)
 {
     uint8_t indx1;
     uint8_t indx2;
-    //<UR2B;from;target;radio;freq;pwr;sf;rnbr;bnbr>\n
+    //<UR2B;from;target;radio;pwr;sf;rnbr;bnbr>\n
+    //<UR2B;1;2;3;14;12;222,210>
 
 
     indx1 = 1;  //rx_msg.str.indexOf(':')
@@ -96,9 +106,15 @@ void uart_build_node_from_rx_str(void)
 void parser_task(void)
 {
     read_uart();
-    if (rx_msg.status == STATUS_OK_FOR_ME)
+    Serial.printf("rx_msg.status= %d\n",rx_msg.status);
+    if (rx_msg.status == STATUS_AVAILABLE)
     {
         parse_rx_frame();
+        Serial.printf("rx_msg.status= %d\nd",rx_msg.status);
+        parser_build_fileds_from_rx_str();
+        Serial.println(rx_msg.field.cmnd);
+        parser_build_msg_from_fields(msg_str,&rx_msg);
+        Serial.println(msg_str);
         rx_msg.avail = false;
         rx_msg.status = STATUS_UNDEFINED;
     }
