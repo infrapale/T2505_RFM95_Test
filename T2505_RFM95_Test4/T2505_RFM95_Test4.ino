@@ -23,9 +23,11 @@
 // Need this on Arduino Zero with SerialUSB port (eg RocketScream Mini Ultra Pro)
 //#define Serial SerialUSB
 
+void debug_print_task(void) {atask_print_status(true);}
 
 main_ctrl_st main_ctrl = { 0, NODE_ROLE_UNDEFINED, false, false, 0 };
-
+//                                  123456789012345      ival  next  state  prev  cntr flag  call backup
+atask_st debug_print_handle      = {"Debug Print    ",   5000, 0,    0,     255,  0,   1, debug_print_task};
 
 void setup() 
 {
@@ -65,6 +67,7 @@ void setup()
 
   rfm_initialize(main_ctrl.node_role); 
   parser_initialize();
+  atask_add_new(&debug_print_handle);
 }
 
 void setup1(void)

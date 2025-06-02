@@ -1,6 +1,7 @@
 #ifndef __RFM_H__
 #define __RFM_H__
 #include "Arduino.h"
+#include <RH_RF95.h>
 #include "main.h"
 #include "atask.h"
 
@@ -14,14 +15,18 @@ typedef enum
 
 typedef struct 
 {
-    uint8_t      node_addr;
-    node_role_et node_role;
-    int          rssi;
-    uint16_t     client_cntr;
-    uint16_t     server_cntr;
-    uint8_t      tindx;
-    atask_st    *taskp;
-    uint32_t    tatio;  
+    uint8_t         node_addr;
+    node_role_et    node_role;
+    int             rssi;
+    int8_t          power;
+    float           frequency;
+    uint16_t        client_cntr;
+    uint16_t        server_cntr;
+    uint8_t         tindx;
+    atask_st        *taskp;
+    uint32_t        tatio;  
+    uint8_t         send_msg[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t         send_data_len;
 } rfm_ctrl_st;
 
 typedef struct
@@ -31,6 +36,12 @@ typedef struct
 } client_msg_st;
 
 void rfm_initialize(node_role_et node_role);
+
+void rfm_set_power(int8_t pwr);
+
+void rfm_set_frequency(float freq);
+
+void rfm_send_str(char *msg);
 
 void rfm_task(void);
 

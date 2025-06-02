@@ -49,6 +49,16 @@ T2505_RFM95_Test2
     <RSND;1;2;L8;20;12;1234;1001>\n   (UART Command)
     <RS2B;1;2;L8;20;12;1234;1001>     (Radio Message from server )
 
+Send Radio Mesage:
+<RSND;from;target;radio;pwr;sf;rnbr;bnbr>\n
+<RSND;1;2;3;14;12;222;210>
+
+Set Power Level:
+<SPWR;pwr>
+<SPWR;20>
+
+
+
 
 
 *******************************************************************************

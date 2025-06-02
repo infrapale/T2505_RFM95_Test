@@ -13,7 +13,7 @@ RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 //RH_RF95 rf95(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 //RH_RF95 rf95(8, 3); // Adafruit Feather M0 with RFM95 
 
-rfm_ctrl_st rfm_ctrl;
+rfm_ctrl_st rfm_ctrl = {0};
 
 
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
@@ -26,6 +26,9 @@ void rfm_initialize(node_role_et node_role)
     if (rf95.init())
     {
         rfm_ctrl.node_role = node_role;
+        rfm_set_frequency(868.8);
+        rfm_set_power(20);
+
         rfm_ctrl.tindx =  atask_add_new(&rfm_task_handle);
     }
     else
@@ -41,24 +44,52 @@ uint8_t sdata[] = "And hello back to you";
 
 uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
 uint8_t len = sizeof(buf);
+//uint8_t send_msg[RH_RF95_MAX_MESSAGE_LEN];
+
+void rfm_send_str(char *msg)
+{
+   uint8_t msg_len = strlen(msg);
+   memcpy(rfm_ctrl.send_msg, msg, msg_len);
+   rfm_ctrl.send_data_len = msg_len; 
+}
+
+void rfm_set_power(int8_t pwr)
+{
+    rfm_ctrl.power =  pwr;
+    rf95.setTxPower( pwr);
+}
+
+void rfm_set_frequency(float freq)
+{
+    rfm_ctrl.frequency = freq;
+    rf95.setFrequency(freq);
+}
+
 
 void loop_client(void)
 {
+    //Serial.print("C"); Serial.print(rfm_task_handle.state);
     switch(rfm_task_handle.state)
     {
         case 0:
-            rfm_task_handle.state = 10;
-            io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
+            rfm_task_handle.state = 5;
+            break;
+        case 5:    
+            if(rfm_ctrl.send_data_len > 0) 
+            {
+                rfm_task_handle.state = 10;
+                io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
+            }
             break;
         case 10:
-
             Serial.println("Sending to rf95_server");
             // Send a message to rf95_server
-            rf95.send(data, sizeof(data));
+            rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
             rf95.waitPacketSent();
+            rfm_ctrl.send_data_len = 0;
             // Now wait for a reply
             rfm_timeout = millis() + 3000;
-            atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval
+            //atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval
             if (rf95.waitAvailableTimeout(1000))
             {
                 rfm_task_handle.state = 30;
@@ -92,7 +123,7 @@ void loop_client(void)
             break;
         case 50:    
             io_blink(COLOR_BLUE, BLINK_OFF); 
-            rfm_timeout = millis() + 5000;
+            rfm_timeout = millis() + 1000;
             rfm_task_handle.state = 60;  
             break;
         case 60:
@@ -108,6 +139,8 @@ void loop_client(void)
 
 void loop_server(void)
 {
+    //Serial.print("S"); Serial.print(rfm_task_handle.state);
+
     switch(rfm_task_handle.state)
     {
         case 0:
@@ -124,8 +157,8 @@ void loop_server(void)
                   //      RH_RF95::printBuffer("request: ", buf, len);
                   Serial.print("got request: ");
                   Serial.println((char*)buf);
-                  //      Serial.print("RSSI: ");
-                  //      Serial.println(rf95.lastRssi(), DEC)
+                  Serial.print("RSSI: ");
+                  Serial.println(rf95.lastRssi(), DEC);
                   rfm_task_handle.state = 20;
                 }
                 else 
@@ -152,54 +185,25 @@ void loop_server(void)
             rfm_task_handle.state = 10;
             break;
 
-
     }
 }  
 
-
-//   if (rf95.available())
-//   {
-//     // Should be a message for us now   
-//     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-//     uint8_t len = sizeof(buf);
-//     if (rf95.recv(buf, &len))
-//     {
-//       //digitalWrite(led, HIGH);
-// //      RH_RF95::printBuffer("request: ", buf, len);
-//       Serial.print("got request: ");
-//       Serial.println((char*)buf);
-// //      Serial.print("RSSI: ");
-// //      Serial.println(rf95.lastRssi(), DEC);
-      
-//       // Send a reply
-//       uint8_t data[] = "And hello back to you";
-//       rf95.send(data, sizeof(data));
-//       rf95.waitPacketSent();
-//       Serial.println("Sent a reply");
-//        //digitalWrite(led, LOW);
-//     }
-//     else
-//     {
-//       Serial.println("recv failed");
-//     }
-//   }
-// }
-
 void rfm_task(void)
 {   
-  switch(rfm_ctrl.node_role)
-  {
-    case NODE_ROLE_CLIENT:
-      loop_client();
-      break;
-    case NODE_ROLE_SERVER:
-      loop_server();
-      break;
-    default:
-      Serial.print("No radio role defined");
-      break;
+    //Serial.print("-");
+    switch(rfm_ctrl.node_role)
+    {
+        case NODE_ROLE_CLIENT:
+            loop_client();
+            break;
+        case NODE_ROLE_SERVER:
+            loop_server();
+            break;
+        default:
+            Serial.print("No radio role defined");
+        break;
 
-  }
+    }
 }
 
 
