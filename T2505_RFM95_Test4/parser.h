@@ -25,6 +25,8 @@ typedef enum
   CMD_RADIO_SEND,
   CMD_RADIO_RECEIVE, 
   CMD_SET_POWER,
+  CMD_RADIO_RESET,
+  CMD_SET_SF,
   CMD_NBR_OF
 } cmd_et;
 

@@ -14,11 +14,10 @@ RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 //RH_RF95 rf95(8, 3); // Adafruit Feather M0 with RFM95 
 
 rfm_ctrl_st rfm_ctrl = {0};
-
+extern main_ctrl_st main_ctrl;
 
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st rfm_task_handle      =  {"RFM Task       ", 100,    0,     0,  255,    0,  1,  rfm_task };
-
 
 
 void rfm_initialize(node_role_et node_role)
@@ -28,23 +27,33 @@ void rfm_initialize(node_role_et node_role)
         rfm_ctrl.node_role = node_role;
         rfm_set_frequency(868.8);
         rfm_set_power(20);
-
-        rfm_ctrl.tindx =  atask_add_new(&rfm_task_handle);
     }
     else
     {
         rfm_ctrl.node_role = NODE_ROLE_UNDEFINED;
         Serial.println("init failed");
     }
+    rfm_ctrl.rec_msg_len    = sizeof(rfm_ctrl.rec_msg);
+    rfm_ctrl.send_msg_len   = sizeof(rfm_ctrl.send_msg);
 }
 
+void rfm_task_initilaize(void)
+{
+    rfm_ctrl.tindx =  atask_add_new(&rfm_task_handle);
+}
+
+void rfm_reset(void)
+{
+    digitalWrite(PIN_RFM_RESET, LOW);
+    delay(100);
+    digitalWrite(PIN_RFM_RESET, HIGH);
+    delay(100);
+    rfm_initialize(main_ctrl.node_role);
+} 
+
 uint32_t rfm_timeout;
-uint8_t  data[] = "Hello World!";
 uint8_t sdata[] = "And hello back to you";
 
-uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-uint8_t len = sizeof(buf);
-//uint8_t send_msg[RH_RF95_MAX_MESSAGE_LEN];
 
 void rfm_send_str(char *msg)
 {
@@ -65,6 +74,13 @@ void rfm_set_frequency(float freq)
     rf95.setFrequency(freq);
 }
 
+void rfm_set_sf(uint8_t sf)
+{
+    rfm_ctrl.sf  = sf;
+    rf95.setSpreadingFactor(sf);
+}
+
+uint8_t data[] = "Hello World!";
 
 void loop_client(void)
 {
@@ -82,15 +98,20 @@ void loop_client(void)
             }
             break;
         case 10:
-            Serial.println("Sending to rf95_server");
+            Serial.printf("Sending to rf95_server: %d\n", rfm_ctrl.send_data_len);
             // Send a message to rf95_server
-            rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
+            rf95.send(data, sizeof(data));
+            //rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
+            Serial.print("@");
+            Serial.flush();
             rf95.waitPacketSent();
+            Serial.println("#");
+            Serial.flush();
             rfm_ctrl.send_data_len = 0;
             // Now wait for a reply
-            rfm_timeout = millis() + 3000;
+            //rfm_timeout = millis() + 3000;
             //atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval
-            if (rf95.waitAvailableTimeout(1000))
+            if (rf95.waitAvailableTimeout(3000))
             {
                 rfm_task_handle.state = 30;
             }
@@ -101,11 +122,11 @@ void loop_client(void)
             break;
         case 30:
             // Should be a reply message for us now   
-            if (rf95.recv(buf, &len))
+            if (rf95.recv(rfm_ctrl.rec_msg, &rfm_ctrl.rec_msg_len))
             {
                 rfm_ctrl.rssi = rf95.lastRssi();
                 Serial.print("got reply: ");
-                Serial.println((char*)buf);
+                Serial.println((char*)rfm_ctrl.rec_msg);
                 Serial.print("RSSI: ");
                 Serial.println(rfm_ctrl.rssi, DEC);    
                 rfm_task_handle.state = 50;  
@@ -150,13 +171,11 @@ void loop_server(void)
             if (rf95.available())
             {
                 // Should be a message for us now   
-                if (rf95.recv(buf, &len))
+                if (rf95.recv(rfm_ctrl.rec_msg, &rfm_ctrl.rec_msg_len))
                 {
                   io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
-                  //digitalWrite(led, HIGH);
-                  //      RH_RF95::printBuffer("request: ", buf, len);
                   Serial.print("got request: ");
-                  Serial.println((char*)buf);
+                  Serial.println((char*)rfm_ctrl.rec_msg);
                   Serial.print("RSSI: ");
                   Serial.println(rf95.lastRssi(), DEC);
                   rfm_task_handle.state = 20;
@@ -170,7 +189,8 @@ void loop_server(void)
             break;
         case 20:
             // Send a reply
-            rf95.send(sdata, sizeof(data));
+            memcpy(rfm_ctrl.send_msg, "<<RREP;1;2;3;14;12;33;444>",RH_RF95_MAX_MESSAGE_LEN);
+            rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_msg_len);
             rf95.waitPacketSent();
             Serial.println("Sent a reply");
             rfm_task_handle.state = 100;

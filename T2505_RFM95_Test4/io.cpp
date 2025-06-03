@@ -102,6 +102,6 @@ void io_task(void)
     else  
         digitalWrite(led[i].pin, LOW);
   } 
-  if (++io_ctrl.pattern_bit >= BLINK_NBR_OF) io_ctrl.pattern_bit = 0;
+  if (++io_ctrl.pattern_bit >= 16) io_ctrl.pattern_bit = 0;
   #endif
 }

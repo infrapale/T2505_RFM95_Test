@@ -57,6 +57,16 @@ Set Power Level:
 <SPWR;pwr>
 <SPWR;20>
 
+Reset Radio:
+<RRST;0>
+
+Set Spreading Factor
+<S_SF;12>    values 6..12
+
+Send Reply:
+<RREP;from;target;radio;pwr;sf;rnbr;bnbr>\n
+<RREP;1;2;3;14;12;33;444>
+
 
 
 

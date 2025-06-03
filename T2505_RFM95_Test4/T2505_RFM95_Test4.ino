@@ -36,7 +36,7 @@ void setup()
 //  pinMode(4, OUTPUT);
 //  digitalWrite(4, HIGH);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   io_initialize();
   uint8_t sw_bm = io_get_switch_bm();
   if ((sw_bm & SW_BM_TEST) == 0)
@@ -66,6 +66,7 @@ void setup()
   Serial.printf("Node Address %d\n", main_ctrl.node_addr);
 
   rfm_initialize(main_ctrl.node_role); 
+  rfm_task_initilaize();
   parser_initialize();
   atask_add_new(&debug_print_handle);
 }
@@ -82,7 +83,6 @@ void setup1(void)
 void loop()
 {   
   atask_run();
-  //rfm_task();
 }
 
 uint32_t io_run_time = millis();

@@ -17,7 +17,7 @@
 #define SW_BM_ADDR          0b00000011
 #define DEBUG_PRINT
 
-//#define UARTX0              Serial1
+#define UART_0              Serial
 
 typedef enum
 {

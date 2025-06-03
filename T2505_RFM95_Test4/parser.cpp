@@ -27,14 +27,17 @@ parser_ctrl_st parser_ctrl;
 void parser_task(void);
 
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
-atask_st parser_task_handle    =  {"UART 0 Task    ", 100,     0,     0,  255,    0,  1,  parser_task };
+atask_st parser_task_handle    =  {"Parser Task    ", 100,     0,     0,  255,    0,  1,  parser_task };
 
 cmd_st commands[CMD_NBR_OF] = 
 {
   [CMD_UNDEFINED]       = {"UNDF"},
   [CMD_RADIO_SEND]      = {"RSND"},
   [CMD_RADIO_RECEIVE]   = {"RREC"},
-  [CMD_SET_POWER]       = {"SPWR"}
+  [CMD_SET_POWER]       = {"SPWR"},
+  [CMD_RADIO_RESET]     = {"RRST"},
+  [CMD_SET_SF]          = {"S_SF"},
+
 };
 
 msg_data_st msg_data = {0};
@@ -42,16 +45,16 @@ msg_data_st msg_data = {0};
 void parser_initialize(void)
 {
     parser_ctrl.tindx =  atask_add_new(&parser_task_handle);
-     rx_msg.avail = false;
+    rx_msg.avail = false;
 }
 
 msg_status_et read_uart(String *Str)
 {
     msg_status_et status = STATUS_UNDEFINED;
-    if (UARTX0.available())
+    if (UART_0.available())
     {
         Serial.println("rx is available");
-        *Str = UARTX0.readStringUntil('\n');
+        *Str = UART_0.readStringUntil('\n');
         if (Str->length()> 0)
         {
             rx_msg.avail = true;
@@ -172,8 +175,14 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
                 break;
             case CMD_SET_POWER:
                 Serial.printf("Set Power: %d",msg_data->value[0]);
+                rfm_set_power(msg_data->value[0]);
                 break;
-
+            case CMD_RADIO_RESET:
+                rfm_reset();
+                break;
+            case CMD_SET_SF:
+                rfm_set_sf(msg_data->value[0]);
+                break;
         }
 
     }

@@ -20,12 +20,16 @@ typedef struct
     int             rssi;
     int8_t          power;
     float           frequency;
+    uint8_t         sf;
     uint16_t        client_cntr;
     uint16_t        server_cntr;
     uint8_t         tindx;
     atask_st        *taskp;
     uint32_t        tatio;  
     uint8_t         send_msg[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t         rec_msg[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t         send_msg_len;
+    uint8_t         rec_msg_len;
     uint8_t         send_data_len;
 } rfm_ctrl_st;
 
@@ -37,9 +41,15 @@ typedef struct
 
 void rfm_initialize(node_role_et node_role);
 
+void rfm_task_initilaize(void);
+
+void rfm_reset(void);
+
 void rfm_set_power(int8_t pwr);
 
 void rfm_set_frequency(float freq);
+
+void rfm_set_sf(uint8_t sf);
 
 void rfm_send_str(char *msg);
 
