@@ -18,6 +18,7 @@
 #define DEBUG_PRINT
 
 #define UART_0              Serial
+#define DEBUG_UART_BPS      9600
 
 typedef enum
 {

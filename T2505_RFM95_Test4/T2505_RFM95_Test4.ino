@@ -36,7 +36,16 @@ void setup()
 //  pinMode(4, OUTPUT);
 //  digitalWrite(4, HIGH);
 
-  Serial.begin(115200);
+  Serial.begin(DEBUG_UART_BPS);
+  Serial1.setTX(PIN_UART0_TX);   // UART0
+  Serial1.setRX(PIN_UART0_RX);
+  Serial2.setTX(PIN_UART1_TX);   // UART1
+  Serial2.setRX(PIN_UART1_RX);
+  Serial.begin(9600);
+  Serial1.begin(9600);
+  Serial2.begin(9600);
+
+
   io_initialize();
   uint8_t sw_bm = io_get_switch_bm();
   if ((sw_bm & SW_BM_TEST) == 0)
@@ -51,6 +60,7 @@ void setup()
   Serial.print("T2505_RFM95_Test3"); Serial.print(" Compiled: ");
   Serial.print(__DATE__); Serial.print(" ");
   Serial.print(__TIME__); Serial.println();
+  Serial1.println("Serial1");
   if(main_ctrl.test_activated) Serial.println("Test Mode is Activated");
   if ((sw_bm & SW_BM_ROLE) != 0)  
   {
@@ -68,7 +78,10 @@ void setup()
   rfm_initialize(main_ctrl.node_role); 
   rfm_task_initilaize();
   parser_initialize();
-  atask_add_new(&debug_print_handle);
+  if(main_ctrl.test_activated)
+  {
+    atask_add_new(&debug_print_handle);
+  }
 }
 
 void setup1(void)
@@ -81,8 +94,8 @@ void setup1(void)
 }
 
 void loop()
-{   
-  atask_run();
+{ 
+    atask_run();
 }
 
 uint32_t io_run_time = millis();

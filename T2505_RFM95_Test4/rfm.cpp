@@ -1,3 +1,9 @@
+/*
+https://www.airspayce.com/mikem/arduino/RadioHead/classRH__RF95.html
+https://learn.adafruit.com/feather-rp2040-rfm95/arduino-ide-setup
+https://www.airspayce.com/mikem/arduino/RadioHead/
+
+*/
 
 #include <SPI.h>
 #include <RH_RF95.h>
@@ -58,6 +64,7 @@ uint8_t sdata[] = "And hello back to you";
 void rfm_send_str(char *msg)
 {
    uint8_t msg_len = strlen(msg);
+   memset(rfm_ctrl.send_msg,0x00,RH_RF95_MAX_MESSAGE_LEN);
    memcpy(rfm_ctrl.send_msg, msg, msg_len);
    rfm_ctrl.send_data_len = msg_len; 
 }
@@ -98,15 +105,18 @@ void loop_client(void)
             }
             break;
         case 10:
-            Serial.printf("Sending to rf95_server: %d\n", rfm_ctrl.send_data_len);
+            // Serial.printf("Sending to rf95_server: %d\n", rfm_ctrl.send_data_len);
+            delay(100);
+            Serial1.println((char*)rfm_ctrl.send_msg);
+            Serial1.flush();
+            delay(100);
             // Send a message to rf95_server
-            rf95.send(data, sizeof(data));
-            //rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
-            Serial.print("@");
-            Serial.flush();
+            //rf95.send(data, sizeof(data));
+            rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
+            delay(100);
             rf95.waitPacketSent();
-            Serial.println("#");
-            Serial.flush();
+            delay(100);
+            Serial1.flush();
             rfm_ctrl.send_data_len = 0;
             // Now wait for a reply
             //rfm_timeout = millis() + 3000;
@@ -211,6 +221,7 @@ void loop_server(void)
 void rfm_task(void)
 {   
     //Serial.print("-");
+    //Serial1.print("|");
     switch(rfm_ctrl.node_role)
     {
         case NODE_ROLE_CLIENT:

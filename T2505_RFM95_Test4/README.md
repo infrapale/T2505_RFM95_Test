@@ -37,7 +37,7 @@ T2505_RFM95_Test2
     msg_id  = 4 charcters
     from    = from node address 1..127
     target  = target node address  0..127
-    radio   = LoRa = 1 | RFM69 = 2
+    radio   = LoRa  = 1 | RFM69 = 2
     freq    = 433 .. 868
     pwr     = power level:  5-20
     sf      = spreading factor
@@ -52,6 +52,9 @@ T2505_RFM95_Test2
 Send Radio Mesage:
 <RSND;from;target;radio;pwr;sf;rnbr;bnbr>\n
 <RSND;1;2;3;14;12;222;210>
+
+Set Frequency:
+<SFRQ;868>
 
 Set Power Level:
 <SPWR;pwr>

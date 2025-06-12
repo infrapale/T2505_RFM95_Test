@@ -18,11 +18,12 @@ Set Power Level:
 #include "parser.h"
 #include "atask.h"
 #include "rfm.h"
-#define UARTX0 Serial
+#define UART_0 Serial1
 
 msg_st tx_msg;
 msg_st rx_msg;
-parser_ctrl_st parser_ctrl;
+parser_ctrl_st  parser_ctrl;
+char            send_msg[RH_RF95_MAX_MESSAGE_LEN];
 
 void parser_task(void);
 
@@ -152,7 +153,7 @@ void parser_print_data(msg_data_st *msg_data)
 
 void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
 {
-    char    send_msg[80];
+
     // Serial.printf("parser_exec_command: %d\n",msg_data->tag_indx);
     if (msg_data->tag_indx < CMD_NBR_OF)
     {
@@ -167,6 +168,7 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
                 msg->field.sf           = msg_data->value[4];
                 msg->field.remote_nbr   = msg_data->value[5];
                 msg->field.base_nbr     = msg_data->value[6];
+                memset(send_msg,0x00,RH_RF95_MAX_MESSAGE_LEN);
                 parser_build_msg_from_fields(send_msg,msg);
                 Serial.println(send_msg);
                 rfm_send_str(send_msg);
