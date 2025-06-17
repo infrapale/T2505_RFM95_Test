@@ -18,7 +18,7 @@ Set Power Level:
 #include "parser.h"
 #include "atask.h"
 #include "rfm.h"
-#define UART_0 Serial1
+//#define UART_0 Serial1
 
 msg_st tx_msg;
 msg_st rx_msg;
@@ -38,10 +38,12 @@ cmd_st commands[CMD_NBR_OF] =
   [CMD_SET_POWER]       = {"SPWR"},
   [CMD_RADIO_RESET]     = {"RRST"},
   [CMD_SET_SF]          = {"S_SF"},
-
+  [CMD_RADIO_REPLY]     = {"RREP"},
 };
 
 msg_data_st msg_data = {0};
+msg_data_st rply_data = {0};
+
 
 void parser_initialize(void)
 {
@@ -52,15 +54,15 @@ void parser_initialize(void)
 msg_status_et read_uart(String *Str)
 {
     msg_status_et status = STATUS_UNDEFINED;
-    if (UART_0.available())
+    if (Serial1.available())
     {
-        Serial.println("rx is available");
-        *Str = UART_0.readStringUntil('\n');
+        //Serial.println("rx is available");
+        *Str = Serial1.readStringUntil('\n');
         if (Str->length()> 0)
         {
             rx_msg.avail = true;
             //rx_msg.str.remove(rx_msg.str.length()-1);
-            Serial.println(rx_msg.str);
+            //Serial1.println(rx_msg.str);
             status = STATUS_AVAILABLE;
         }
     } 
@@ -148,6 +150,21 @@ void parser_print_data(msg_data_st *msg_data)
         Serial.printf("%d, ",msg_data->value[i]);
     }
     Serial.println("");
+}
+
+
+void parser_radio_reply(uint8_t *msg , int rssi)
+{
+    String RplyStr;
+    msg_status_et rply_status = STATUS_UNDEFINED;
+
+    RplyStr = (char*)msg;
+    rply_status = parse_frame(&RplyStr);
+    Serial.print("Parsing radio reply:");
+    Serial.print(" Status= "); Serial.print(rply_status); 
+    Serial.print(" Message= "); Serial.println(RplyStr);
+    parser_rd_msg_values(&rply_data, &RplyStr);
+    parser_print_data(&rply_data);
 }
 
 

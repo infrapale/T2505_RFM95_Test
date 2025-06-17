@@ -23,7 +23,7 @@ rfm_ctrl_st rfm_ctrl = {0};
 extern main_ctrl_st main_ctrl;
 
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
-atask_st rfm_task_handle      =  {"RFM Task       ", 100,    0,     0,  255,    0,  1,  rfm_task };
+atask_st rfm_task_handle      =  {"RFM Task       ", 10,    0,     0,  255,    0,  1,  rfm_task };
 
 
 void rfm_initialize(node_role_et node_role)
@@ -89,6 +89,14 @@ void rfm_set_sf(uint8_t sf)
 
 uint8_t data[] = "Hello World!";
 
+void fix_serial1(void)
+{
+    //Serial1.end();
+    //Serial1.begin(INTERCONNECT_UART_BPS);
+    //delay(1000);
+    Serial1.clearWriteError();
+    Serial1.setPollingMode(false);
+}
 void loop_client(void)
 {
     //Serial.print("C"); Serial.print(rfm_task_handle.state);
@@ -100,51 +108,68 @@ void loop_client(void)
         case 5:    
             if(rfm_ctrl.send_data_len > 0) 
             {
+                rfm_ctrl.reply_status =  REPLY_UNDEFINED;
                 rfm_task_handle.state = 10;
                 io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
             }
             break;
         case 10:
             // Serial.printf("Sending to rf95_server: %d\n", rfm_ctrl.send_data_len);
-            delay(100);
-            Serial1.println((char*)rfm_ctrl.send_msg);
-            Serial1.flush();
-            delay(100);
+            //delay(100);
+            //Serial1.println((char*)rfm_ctrl.send_msg);
+            //Serial1.flush();
+            //delay(100);
             // Send a message to rf95_server
             //rf95.send(data, sizeof(data));
+             Serial1.print("> ");
             rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
-            delay(100);
+            //delay(100);
             rf95.waitPacketSent();
-            delay(100);
-            Serial1.flush();
+            //delay(100);
+            //Serial1.flush();
             rfm_ctrl.send_data_len = 0;
             // Now wait for a reply
             //rfm_timeout = millis() + 3000;
             //atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval
+            Serial1.println("case 10");
             if (rf95.waitAvailableTimeout(3000))
             {
+                //Serial1.print("< ");
+                rfm_ctrl.rec_msg_len = RH_RF95_MAX_MESSAGE_LEN-10;
                 rfm_task_handle.state = 30;
-            }
+                //Serial1.println("new state 30");
+        }
             else
             {
               rfm_task_handle.state = 40;
+              rfm_ctrl.reply_status =  REPLY_FAILED;
+              //fix_serial1();
+              Serial1.println("*******REPLY_FAILED*******");
             }
             break;
         case 30:
             // Should be a reply message for us now   
             if (rf95.recv(rfm_ctrl.rec_msg, &rfm_ctrl.rec_msg_len))
             {
+                rfm_ctrl.reply_status =  REPLY_RECEIVED;
                 rfm_ctrl.rssi = rf95.lastRssi();
-                Serial.print("got reply: ");
-                Serial.println((char*)rfm_ctrl.rec_msg);
-                Serial.print("RSSI: ");
-                Serial.println(rfm_ctrl.rssi, DEC);    
+                if(rfm_ctrl.rec_msg_len < RH_RF95_MAX_MESSAGE_LEN-1 )
+                {
+                    rfm_ctrl.rec_msg[rfm_ctrl.rec_msg_len] = 0x00;
+                    Serial1.println((char*)rfm_ctrl.rec_msg);
+                }
+                parser_radio_reply(rfm_ctrl.rec_msg, rfm_ctrl.rssi);
+                //Serial1.print("got reply: ");
+                //Serial.println((char*)rfm_ctrl.rec_msg);
+                //Serial.print("RSSI: ");
+                //Serial.println(rfm_ctrl.rssi, DEC);    
                 rfm_task_handle.state = 50;  
             }
             else
             {
-                Serial.println("recv failed");
+                //Serial.println("recv failed");
                 rfm_task_handle.state = 40;  
+                rfm_ctrl.reply_status =  REPLY_FAILED;
             }            
             break;
         case 40:
@@ -199,14 +224,14 @@ void loop_server(void)
             break;
         case 20:
             // Send a reply
-            memcpy(rfm_ctrl.send_msg, "<<RREP;1;2;3;14;12;33;444>",RH_RF95_MAX_MESSAGE_LEN);
+            memcpy(rfm_ctrl.send_msg, "<RREP;1;2;3;14;12;33;444>",RH_RF95_MAX_MESSAGE_LEN);
             rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_msg_len);
             rf95.waitPacketSent();
             Serial.println("Sent a reply");
             rfm_task_handle.state = 100;
             break;
         case 50:
-             Serial.println("recv failed");
+            Serial.println("recv failed");
             rfm_task_handle.state = 100;
             break;
         case 100:

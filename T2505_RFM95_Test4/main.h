@@ -19,6 +19,7 @@
 
 #define UART_0              Serial
 #define DEBUG_UART_BPS      9600
+#define INTERCONNECT_UART_BPS      9600
 
 typedef enum
 {

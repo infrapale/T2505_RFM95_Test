@@ -27,6 +27,7 @@ typedef enum
   CMD_SET_POWER,
   CMD_RADIO_RESET,
   CMD_SET_SF,
+  CMD_RADIO_REPLY,
   CMD_NBR_OF
 } cmd_et;
 
@@ -111,6 +112,7 @@ typedef struct
 } parser_ctrl_st;
 
 void parser_initialize(void);
+void parser_radio_reply(uint8_t *msg , int rssi);
 
 
 #endif

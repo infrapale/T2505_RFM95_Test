@@ -12,6 +12,14 @@ typedef enum
     SERVER_ADDRESS  = 2
 } addr_type_et;
 
+typedef enum
+{
+    REPLY_UNDEFINED = 0,
+    REPLY_RECEIVED,
+    REPLY_FAILED,
+    REPLY_ACK,
+    REPLY_NBR_OF
+} reply_et;
 
 typedef struct 
 {
@@ -31,6 +39,7 @@ typedef struct
     uint8_t         send_msg_len;
     uint8_t         rec_msg_len;
     uint8_t         send_data_len;
+    reply_et        reply_status;
 } rfm_ctrl_st;
 
 typedef struct
