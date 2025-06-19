@@ -100,7 +100,7 @@ typedef struct
   uint8_t         len;
   field_st        field;
   msg_status_et   status;
-  uint8_t         rx_delim[FIELD_NBR_OF];
+  //uint8_t         rx_delim[FIELD_NBR_OF];
   bool            avail;
 } msg_st;
 

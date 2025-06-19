@@ -121,7 +121,6 @@ void loop_client(void)
             //delay(100);
             // Send a message to rf95_server
             //rf95.send(data, sizeof(data));
-             Serial1.print("> ");
             rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
             //delay(100);
             rf95.waitPacketSent();
@@ -130,8 +129,7 @@ void loop_client(void)
             rfm_ctrl.send_data_len = 0;
             // Now wait for a reply
             //rfm_timeout = millis() + 3000;
-            //atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval
-            Serial1.println("case 10");
+            //atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval           
             if (rf95.waitAvailableTimeout(3000))
             {
                 //Serial1.print("< ");
@@ -201,6 +199,7 @@ void loop_server(void)
     {
         case 0:
             rfm_task_handle.state = 10;
+            rfm_ctrl.rec_msg_len = RH_RF95_MAX_MESSAGE_LEN-10;
             break;
         case 10:
             if (rf95.available())

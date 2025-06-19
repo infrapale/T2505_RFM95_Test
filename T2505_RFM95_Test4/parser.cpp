@@ -165,8 +165,41 @@ void parser_radio_reply(uint8_t *msg , int rssi)
     Serial.print(" Message= "); Serial.println(RplyStr);
     parser_rd_msg_values(&rply_data, &RplyStr);
     parser_print_data(&rply_data);
+
+    rx_msg.field.from           = rply_data.value[0];
+    rx_msg.field.start          = rply_data.value[1];
+    rx_msg.field.radio          = rply_data.value[2];
+    rx_msg.field.power          = rply_data.value[3];
+    rx_msg.field.sf             = rply_data.value[4];
+    rx_msg.field.remote_nbr     = rply_data.value[5];
+    rx_msg.field.base_nbr       = rply_data.value[6];
+    
+    rx_msg.avail    = true;
+    rx_msg.status   = STATUS_AVAILABLE;
 }
 
+void parser_get_reply(void)
+{
+    //char buff[40]; memset(buff,0x00,40);
+    if(rx_msg.avail)
+    {
+        Serial1.printf("<REPL;%d;%d;%d;%d;%d;%d;%d>\n",
+            rx_msg.field.from,
+            rx_msg.field.start,
+            rx_msg.field.radio,
+            rx_msg.field.power,
+            rx_msg.field.sf,
+            rx_msg.field.remote_nbr,
+            rx_msg.field.base_nbr);
+        //Serial1.println(buff);
+        rx_msg.avail = false;
+    }
+    else
+    {
+        Serial1.printf("<FAIL;%d>\n");
+    }
+
+}
 
 void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
 {
@@ -201,6 +234,9 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
                 break;
             case CMD_SET_SF:
                 rfm_set_sf(msg_data->value[0]);
+                break;
+            case CMD_RADIO_REPLY:
+                parser_get_reply();
                 break;
         }
 
