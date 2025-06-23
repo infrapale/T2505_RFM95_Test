@@ -4,6 +4,8 @@
 #include <RH_RF95.h>
 #include "main.h"
 #include "atask.h"
+#include "parser.h"
+
 
 typedef enum
 {
@@ -21,8 +23,34 @@ typedef enum
     REPLY_NBR_OF
 } reply_et;
 
+typedef struct
+{
+  char      start;
+  char      cmnd[CMD_TAG_LEN];
+  uint8_t   from;
+  uint8_t   target;
+  uint8_t   radio;
+  uint8_t   power;
+  int16_t   rssi;
+  uint8_t   sf;
+  uint16_t  remote_nbr;
+  uint16_t  base_nbr;
+  char      end;
+} field_st;
+
+
+typedef struct
+{
+  uint8_t         len;
+  field_st        field;
+  msg_status_et   status;
+  bool            avail;
+} msg_st;
+
 typedef struct 
 {
+    msg_st          tx_msg;
+    msg_st          rx_msg;
     uint8_t         node_addr;
     node_role_et    node_role;
     int             rssi;
@@ -38,7 +66,6 @@ typedef struct
     uint8_t         rec_msg[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t         send_msg_len;
     uint8_t         rec_msg_len;
-    uint8_t         send_data_len;
     reply_et        reply_status;
 } rfm_ctrl_st;
 

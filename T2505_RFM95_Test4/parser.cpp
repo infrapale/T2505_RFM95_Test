@@ -20,9 +20,8 @@ Set Power Level:
 #include "rfm.h"
 //#define UART_0 Serial1
 
-msg_st tx_msg;
-msg_st rx_msg;
 parser_ctrl_st  parser_ctrl;
+extern rfm_ctrl_st rfm_ctrl;
 char            send_msg[RH_RF95_MAX_MESSAGE_LEN];
 
 void parser_task(void);
@@ -39,6 +38,7 @@ cmd_st commands[CMD_NBR_OF] =
   [CMD_RADIO_RESET]     = {"RRST"},
   [CMD_SET_SF]          = {"S_SF"},
   [CMD_RADIO_REPLY]     = {"RREP"},
+  [CMD_GET_RSSI]        = {"RSSI"},
 };
 
 msg_data_st msg_data = {0};
@@ -48,7 +48,7 @@ msg_data_st rply_data = {0};
 void parser_initialize(void)
 {
     parser_ctrl.tindx =  atask_add_new(&parser_task_handle);
-    rx_msg.avail = false;
+    rfm_ctrl.rx_msg.avail = false;
 }
 
 msg_status_et read_uart(String *Str)
@@ -60,7 +60,7 @@ msg_status_et read_uart(String *Str)
         *Str = Serial1.readStringUntil('\n');
         if (Str->length()> 0)
         {
-            rx_msg.avail = true;
+            rfm_ctrl.rx_msg.avail = true;
             //rx_msg.str.remove(rx_msg.str.length()-1);
             //Serial1.println(rx_msg.str);
             status = STATUS_AVAILABLE;
@@ -96,12 +96,13 @@ msg_status_et parse_frame(String *Str)
 //char msg_str[80];
 void parser_build_msg_from_fields(char *msg, msg_st *msg_data)
 {
-    sprintf(msg,"<%s;%d;%d;%d;%d;%d;%d;%d>",
+    sprintf(msg,"<%s;%d;%d;%d;%d;%d;%d;%d;%d>",
         msg_data->field.cmnd,
         msg_data->field.from,
         msg_data->field.target,
         msg_data->field.radio,
         msg_data->field.power,
+        msg_data->field.rssi,
         msg_data->field.sf,
         msg_data->field.remote_nbr,
         msg_data->field.base_nbr
@@ -166,40 +167,56 @@ void parser_radio_reply(uint8_t *msg , int rssi)
     parser_rd_msg_values(&rply_data, &RplyStr);
     parser_print_data(&rply_data);
 
-    rx_msg.field.from           = rply_data.value[0];
-    rx_msg.field.start          = rply_data.value[1];
-    rx_msg.field.radio          = rply_data.value[2];
-    rx_msg.field.power          = rply_data.value[3];
-    rx_msg.field.sf             = rply_data.value[4];
-    rx_msg.field.remote_nbr     = rply_data.value[5];
-    rx_msg.field.base_nbr       = rply_data.value[6];
+    rfm_ctrl.rx_msg.field.from           = rply_data.value[0];
+    rfm_ctrl.rx_msg.field.target         = rply_data.value[1];
+    rfm_ctrl.rx_msg.field.radio          = rply_data.value[2];
+    rfm_ctrl.rx_msg.field.power          = rply_data.value[3];
+    rfm_ctrl.rx_msg.field.rssi           = rply_data.value[4];
+    rfm_ctrl.rx_msg.field.sf             = rply_data.value[5];
+    rfm_ctrl.rx_msg.field.remote_nbr     = rply_data.value[6];
+    rfm_ctrl.rx_msg.field.base_nbr       = rply_data.value[7];
     
-    rx_msg.avail    = true;
-    rx_msg.status   = STATUS_AVAILABLE;
+    rfm_ctrl.rx_msg.avail    = true;
+    rfm_ctrl.rx_msg.status   = STATUS_AVAILABLE;
 }
 
 void parser_get_reply(void)
 {
-    //char buff[40]; memset(buff,0x00,40);
-    if(rx_msg.avail)
+    if(rfm_ctrl.rx_msg.avail)
     {
-        Serial1.printf("<REPL;%d;%d;%d;%d;%d;%d;%d>\n",
-            rx_msg.field.from,
-            rx_msg.field.start,
-            rx_msg.field.radio,
-            rx_msg.field.power,
-            rx_msg.field.sf,
-            rx_msg.field.remote_nbr,
-            rx_msg.field.base_nbr);
-        //Serial1.println(buff);
-        rx_msg.avail = false;
+        Serial1.printf("<REPL;%d;%d;%d;%d;%d;%d;%d;%d>\n",
+            rfm_ctrl.rx_msg.field.from,
+            rfm_ctrl.rx_msg.field.start,
+            rfm_ctrl.rx_msg.field.radio,
+            rfm_ctrl.rx_msg.field.power,
+            rfm_ctrl.rx_msg.field.rssi,
+            rfm_ctrl.rx_msg.field.sf,
+            rfm_ctrl.rx_msg.field.remote_nbr,
+            rfm_ctrl.rx_msg.field.base_nbr);
+        rfm_ctrl.rx_msg.avail = false;
     }
     else
     {
-        Serial1.printf("<FAIL;%d>\n");
+        Serial1.printf("<FAIL;%d>\n",0);
     }
 
 }
+
+// Get own RSSI
+void parser_get_rssi(void)
+{
+    if(rfm_ctrl.rx_msg.avail)
+    {
+        Serial1.printf("<RSSI;%d>\n",rfm_ctrl.rssi);
+        Serial.printf("<RSSI;%d>\n",rfm_ctrl.rssi);
+    }
+    else
+    {
+        Serial1.printf("<FAIL;%d>\n",0);
+    }
+
+}
+
 
 void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
 {
@@ -215,12 +232,14 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
                 msg->field.target       = msg_data->value[1];
                 msg->field.radio        = msg_data->value[2];
                 msg->field.power        = msg_data->value[3];
-                msg->field.sf           = msg_data->value[4];
-                msg->field.remote_nbr   = msg_data->value[5];
-                msg->field.base_nbr     = msg_data->value[6];
+                msg->field.rssi         = msg_data->value[4];
+                msg->field.sf           = msg_data->value[5];
+                msg->field.remote_nbr   = msg_data->value[6];
+                msg->field.base_nbr     = msg_data->value[7];
                 memset(send_msg,0x00,RH_RF95_MAX_MESSAGE_LEN);
                 parser_build_msg_from_fields(send_msg,msg);
                 Serial.println(send_msg);
+                rfm_set_power(msg->field.power);
                 rfm_send_str(send_msg);
                 break;
             case CMD_RADIO_RECEIVE:
@@ -238,6 +257,9 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
             case CMD_RADIO_REPLY:
                 parser_get_reply();
                 break;
+            case CMD_GET_RSSI:
+                parser_get_rssi(); 
+                break;   
         }
 
     }
@@ -268,14 +290,14 @@ void parser_task(void)
 
             parser_rd_msg_values(&msg_data, &RxStr);
             parser_print_data(&msg_data);
-            parser_exec_command(&tx_msg, &msg_data);
-            Serial.println(rx_msg.field.cmnd);
-            Serial.println(rx_msg.field.base_nbr);
+            parser_exec_command(&rfm_ctrl.tx_msg, &msg_data);
+            Serial.println(rfm_ctrl.rx_msg.field.cmnd);
+            Serial.println(rfm_ctrl.rx_msg.field.base_nbr);
 
             //parser_build_msg_from_fields(test_msg,&rx_msg);
             //Serial.println(test_msg);
-            rx_msg.avail = false;
-            rx_msg.status = STATUS_UNDEFINED;
+            rfm_ctrl.rx_msg.avail = false;
+            rfm_ctrl.rx_msg.status = STATUS_UNDEFINED;
             parser_task_handle.state = 10;
             break;
         case 30:

@@ -40,17 +40,18 @@ T2505_RFM95_Test2
     radio   = LoRa  = 1 | RFM69 = 2
     freq    = 433 .. 868
     pwr     = power level:  5-20
+    rssi    = last received rssi  -10 .. -140
     sf      = spreading factor
     rnbr    = remote send counter: 0-65000, incremented for each message sent by the remote
     bnbr    = base reply counter: 0-65000, incremented for each reply sent by the base
     pindx   = parameter index
 
   Examples:
-    <RSND;1;2;L8;20;12;1234;1001>\n   (UART Command)
-    <RS2B;1;2;L8;20;12;1234;1001>     (Radio Message from server )
+    <RSND;1;2;L8;20;12;-88;1234;1001>\n   (UART Command)
+    <RREP;1;2;L8;20;12;-101;1234;1001>     (Radio Message from server )
 
 Send Radio Mesage:
-<RSND;from;target;radio;pwr;sf;rnbr;bnbr>\n
+<RSND;from;target;radio;pwr;rssi;sf;rnbr;bnbr>\n
 <RSND;1;2;3;14;12;222;210>
 
 Set Frequency:

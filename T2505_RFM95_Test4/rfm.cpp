@@ -21,13 +21,14 @@ RH_RF95 rf95(PIN_RFM_CS, PIN_RFM_IRQ );
 
 rfm_ctrl_st rfm_ctrl = {0};
 extern main_ctrl_st main_ctrl;
-
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st rfm_task_handle      =  {"RFM Task       ", 10,    0,     0,  255,    0,  1,  rfm_task };
 
 
 void rfm_initialize(node_role_et node_role)
 {
+
+    rfm_ctrl.rx_msg.avail = false;
     if (rf95.init())
     {
         rfm_ctrl.node_role = node_role;
@@ -66,7 +67,7 @@ void rfm_send_str(char *msg)
    uint8_t msg_len = strlen(msg);
    memset(rfm_ctrl.send_msg,0x00,RH_RF95_MAX_MESSAGE_LEN);
    memcpy(rfm_ctrl.send_msg, msg, msg_len);
-   rfm_ctrl.send_data_len = msg_len; 
+   rfm_ctrl.send_msg_len = msg_len; 
 }
 
 void rfm_set_power(int8_t pwr)
@@ -106,7 +107,7 @@ void loop_client(void)
             rfm_task_handle.state = 5;
             break;
         case 5:    
-            if(rfm_ctrl.send_data_len > 0) 
+            if(rfm_ctrl.send_msg_len > 0) 
             {
                 rfm_ctrl.reply_status =  REPLY_UNDEFINED;
                 rfm_task_handle.state = 10;
@@ -121,12 +122,12 @@ void loop_client(void)
             //delay(100);
             // Send a message to rf95_server
             //rf95.send(data, sizeof(data));
-            rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_data_len);
+            rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_msg_len);
             //delay(100);
             rf95.waitPacketSent();
             //delay(100);
             //Serial1.flush();
-            rfm_ctrl.send_data_len = 0;
+            rfm_ctrl.send_msg_len = 0;
             // Now wait for a reply
             //rfm_timeout = millis() + 3000;
             //atask_delay( rfm_ctrl.tindx, 10);  //Shorten run interval           
@@ -194,7 +195,7 @@ void loop_client(void)
 void loop_server(void)
 {
     //Serial.print("S"); Serial.print(rfm_task_handle.state);
-
+    char txt[40];
     switch(rfm_task_handle.state)
     {
         case 0:
@@ -207,11 +208,23 @@ void loop_server(void)
                 // Should be a message for us now   
                 if (rf95.recv(rfm_ctrl.rec_msg, &rfm_ctrl.rec_msg_len))
                 {
+                    rfm_ctrl.reply_status =  REPLY_RECEIVED;
+                    rfm_ctrl.rssi = rf95.lastRssi();
+                    if(rfm_ctrl.rec_msg_len < RH_RF95_MAX_MESSAGE_LEN-1 )
+                    {
+                        rfm_ctrl.rec_msg[rfm_ctrl.rec_msg_len] = 0x00;
+                        Serial1.println((char*)rfm_ctrl.rec_msg);
+                    }
+                    parser_radio_reply(rfm_ctrl.rec_msg, rfm_ctrl.rssi);
+                    rfm_ctrl.server_cntr++;
+
+
+                  rfm_ctrl.rssi = rf95.lastRssi(); 
                   io_blink(COLOR_BLUE, BLINK_FAST_BLINK);
                   Serial.print("got request: ");
                   Serial.println((char*)rfm_ctrl.rec_msg);
                   Serial.print("RSSI: ");
-                  Serial.println(rf95.lastRssi(), DEC);
+                  Serial.println(rfm_ctrl.rssi, DEC);
                   rfm_task_handle.state = 20;
                 }
                 else 
@@ -223,7 +236,19 @@ void loop_server(void)
             break;
         case 20:
             // Send a reply
-            memcpy(rfm_ctrl.send_msg, "<RREP;1;2;3;14;12;33;444>",RH_RF95_MAX_MESSAGE_LEN);
+            sprintf(txt,"<RREP;%d;%d;%d;%d;%d;%d;%d;%d>",
+                rfm_ctrl.rx_msg.field.from,
+                rfm_ctrl.rx_msg.field.target,
+                rfm_ctrl.node_role,
+                rfm_ctrl.power,
+                rfm_ctrl.rssi,
+                rfm_ctrl.sf,
+                rfm_ctrl.rx_msg.field.remote_nbr,
+                rfm_ctrl.server_cntr
+                );
+            rfm_ctrl.send_msg_len = strlen(txt); 
+            memcpy(rfm_ctrl.send_msg, txt, rfm_ctrl.send_msg_len);
+            //memcpy(rfm_ctrl.send_msg, "<RREP;1;2;3;14;-77;12;33;444>",RH_RF95_MAX_MESSAGE_LEN);
             rf95.send(rfm_ctrl.send_msg, rfm_ctrl.send_msg_len);
             rf95.waitPacketSent();
             Serial.println("Sent a reply");

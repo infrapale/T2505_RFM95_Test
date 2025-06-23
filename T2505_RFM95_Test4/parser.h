@@ -28,6 +28,7 @@ typedef enum
   CMD_RADIO_RESET,
   CMD_SET_SF,
   CMD_RADIO_REPLY,
+  CMD_GET_RSSI,
   CMD_NBR_OF
 } cmd_et;
 
@@ -65,19 +66,6 @@ typedef enum
 } msg_status_et;
 
 
-typedef struct
-{
-  char      start;
-  char      cmnd[CMD_TAG_LEN];
-  uint8_t   from;
-  uint8_t   target;
-  uint8_t   radio;
-  uint8_t   power;
-  uint8_t   sf;
-  uint16_t  remote_nbr;
-  uint16_t  base_nbr;
-  char      end;
-} field_st;
 
 
 typedef struct
@@ -94,15 +82,6 @@ typedef struct
   int16_t   value[CMD_MAX_VALUES];
 } msg_data_st;
 
-typedef struct
-{
-  String          str;
-  uint8_t         len;
-  field_st        field;
-  msg_status_et   status;
-  //uint8_t         rx_delim[FIELD_NBR_OF];
-  bool            avail;
-} msg_st;
 
 typedef struct
 {
