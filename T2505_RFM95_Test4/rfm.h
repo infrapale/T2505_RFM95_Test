@@ -18,6 +18,7 @@ typedef enum
 {
     REPLY_UNDEFINED = 0,
     REPLY_RECEIVED,
+    REPLY_REQUEST,
     REPLY_FAILED,
     REPLY_ACK,
     REPLY_NBR_OF
@@ -47,6 +48,13 @@ typedef struct
   bool            avail;
 } msg_st;
 
+typedef struct
+{
+    bool get_rssi;
+    bool get_role;
+    bool get_msg;
+} sub_task_st;
+
 typedef struct 
 {
     msg_st          tx_msg;
@@ -67,6 +75,7 @@ typedef struct
     uint8_t         send_msg_len;
     uint8_t         rec_msg_len;
     reply_et        reply_status;
+    sub_task_st     sub_task;
 } rfm_ctrl_st;
 
 typedef struct

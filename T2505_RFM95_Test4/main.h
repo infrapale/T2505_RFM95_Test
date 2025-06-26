@@ -26,6 +26,7 @@ typedef enum
     NODE_ROLE_UNDEFINED = 0,
     NODE_ROLE_CLIENT,
     NODE_ROLE_SERVER,
+    NODE_ROLE_NBR_OF
 } node_role_et;
 
 

@@ -39,6 +39,9 @@ cmd_st commands[CMD_NBR_OF] =
   [CMD_SET_SF]          = {"S_SF"},
   [CMD_RADIO_REPLY]     = {"RREP"},
   [CMD_GET_RSSI]        = {"RSSI"},
+  [CMD_GET_ROLE]        = {"ROLE"},
+  [CMD_GET_MSG]         = {"GMSG"},
+  [CMD_GET_CNTR]        = {"CNTR"},
 };
 
 msg_data_st msg_data = {0};
@@ -214,7 +217,30 @@ void parser_get_rssi(void)
     {
         Serial1.printf("<FAIL;%d>\n",0);
     }
+}
 
+// Get own Role
+void parser_get_role(void)
+{
+    if(rfm_ctrl.node_role == NODE_ROLE_CLIENT)
+    {
+        Serial1.printf("<ROLE;%d>\n",rfm_ctrl.node_role);
+        Serial.printf("<ROLE;%d>\n",rfm_ctrl.node_role);
+    }
+    rfm_ctrl.sub_task.get_role = true;
+}
+
+void parser_get_msg(void)
+{
+    rfm_ctrl.sub_task.get_msg = true;
+}
+
+void parser_get_cntr(void)
+{
+    if(rfm_ctrl.node_role == NODE_ROLE_CLIENT)
+        Serial1.printf("<CNTR;%d>\n",rfm_ctrl.client_cntr);
+    else
+        Serial1.printf("<CNTR;%d>\n",rfm_ctrl.server_cntr);
 }
 
 
@@ -260,6 +286,15 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
             case CMD_GET_RSSI:
                 parser_get_rssi(); 
                 break;   
+            case CMD_GET_ROLE:
+                parser_get_role(); 
+                break;   
+            case CMD_GET_MSG:
+                parser_get_msg(); 
+                break;   
+            case CMD_GET_CNTR:
+                parser_get_cntr(); 
+                break;   
         }
 
     }
@@ -296,7 +331,7 @@ void parser_task(void)
 
             //parser_build_msg_from_fields(test_msg,&rx_msg);
             //Serial.println(test_msg);
-            rfm_ctrl.rx_msg.avail = false;
+            //rfm_ctrl.rx_msg.avail = false;
             rfm_ctrl.rx_msg.status = STATUS_UNDEFINED;
             parser_task_handle.state = 10;
             break;

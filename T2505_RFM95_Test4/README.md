@@ -1,6 +1,13 @@
 /******************************************************************************
-T2505_RFM95_Test2
+T2505_RFM95_Test4
 *******************************************************************************
+
+Required non-arduino Libraries:
+  https://github.com/infrapale/T2409_atask
+
+*******************************************************************************
+
+
 
 -------------       --------------       --------------       --------------
 | Remote    |       |  Remote    |       |  Base      |       |  Base      |
@@ -54,19 +61,13 @@ Send Radio Mesage:
 <RSND;from;target;radio;pwr;rssi;sf;rnbr;bnbr>\n
 <RSND;1;2;3;14;12;222;210>
 
-Set Frequency:
-<SFRQ;868>
-
-Set Power Level:
-<SPWR;pwr>
-<SPWR;20>
-
-Reset Radio:
-<RRST;0>
-
-Set Spreading Factor
-<S_SF;12>    values 6..12
-
+Set Frequency:    <SFRQ;868>
+Set Power Level:  <SPWR;pwr>, <SPWR;20>
+Reset Radio:      <RRST;0>
+Get Counter:      <CNTR;0>
+Get Role:         <ROLE;0>
+Set SF:           <S_SF;12>,  Spreading Factor values 6..12
+    
 Send Reply:
 <RREP;from;target;radio;pwr;sf;rnbr;bnbr>\n
 <RREP;1;2;3;14;12;33;444>

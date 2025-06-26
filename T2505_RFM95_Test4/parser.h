@@ -29,6 +29,9 @@ typedef enum
   CMD_SET_SF,
   CMD_RADIO_REPLY,
   CMD_GET_RSSI,
+  CMD_GET_ROLE,
+  CMD_GET_MSG,
+  CMD_GET_CNTR,
   CMD_NBR_OF
 } cmd_et;
 
@@ -92,6 +95,7 @@ typedef struct
 
 void parser_initialize(void);
 void parser_radio_reply(uint8_t *msg , int rssi);
+void parser_get_reply(void);
 
 
 #endif

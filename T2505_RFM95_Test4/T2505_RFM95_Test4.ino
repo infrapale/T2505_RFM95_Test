@@ -78,7 +78,7 @@ void setup()
   rfm_initialize(main_ctrl.node_role); 
   rfm_task_initilaize();
   parser_initialize();
-  if(main_ctrl.test_activated)
+  //if(main_ctrl.test_activated)
   {
     atask_add_new(&debug_print_handle);
   }
