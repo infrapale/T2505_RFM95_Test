@@ -6,6 +6,8 @@
 #include "atask.h"
 #include "parser.h"
 
+#define NBR_OF_MODEM_CONF   5
+
 
 typedef enum
 {
@@ -64,6 +66,7 @@ typedef struct
     int             rssi;
     int8_t          power;
     float           frequency;
+    RH_RF95::ModemConfigChoice  modem_conf;
     uint8_t         sf;
     uint16_t        client_cntr;
     uint16_t        server_cntr;
@@ -93,6 +96,8 @@ void rfm_reset(void);
 void rfm_set_power(int8_t pwr);
 
 void rfm_set_frequency(float freq);
+
+void rfm_set_modem_conf(int8_t modem_conf_indx);
 
 void rfm_set_sf(uint8_t sf);
 

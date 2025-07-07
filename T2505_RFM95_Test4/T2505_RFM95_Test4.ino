@@ -57,7 +57,7 @@ void setup()
   }
 
   //while (!Serial) ; // Wait for serial port to be available
-  Serial.print("T2505_RFM95_Test3"); Serial.print(" Compiled: ");
+  Serial.print(APP_NAME); Serial.print(" Compiled: ");
   Serial.print(__DATE__); Serial.print(" ");
   Serial.print(__TIME__); Serial.println();
   Serial1.println("Serial1");

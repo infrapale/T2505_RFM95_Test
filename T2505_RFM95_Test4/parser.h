@@ -32,6 +32,7 @@ typedef enum
   CMD_GET_ROLE,
   CMD_GET_MSG,
   CMD_GET_CNTR,
+  CMD_SET_MODEM_CONF,
   CMD_NBR_OF
 } cmd_et;
 

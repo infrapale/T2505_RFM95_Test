@@ -6,7 +6,7 @@ https://www.airspayce.com/mikem/arduino/RadioHead/
 */
 
 #include <SPI.h>
-#include <RH_RF95.h>
+//#include <RH_RF95.h>
 #include "main.h"
 #include "io.h"
 #include "rfm.h"
@@ -24,6 +24,15 @@ extern main_ctrl_st main_ctrl;
 //                                  123456789012345   ival  next  state  prev  cntr flag  call backup
 atask_st rfm_task_handle      =  {"RFM Task       ", 10,    0,     0,  255,    0,  1,  rfm_task };
 
+//rf95.ModemConfigChoice modem_config[1] = {Bw125Cr45Sf128}; 
+RH_RF95::ModemConfigChoice modem_config[NBR_OF_MODEM_CONF] = 
+{
+	rf95.Bw125Cr45Sf128,	   ///< Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on. Default medium range
+	rf95.Bw500Cr45Sf128,       ///< Bw = 500 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on. Fast+short range
+	rf95.Bw31_25Cr48Sf512,	   ///< Bw = 31.25 kHz, Cr = 4/8, Sf = 512chips/symbol, CRC on. Slow+long range
+	rf95.Bw125Cr48Sf4096,      ///< Bw = 125 kHz, Cr = 4/8, Sf = 4096chips/symbol, low data rate, CRC on. Slow+long range
+	rf95.Bw125Cr45Sf2048       ///< Bw = 125 kHz, Cr = 4/5, Sf = 2048chips/symbol, CRC on. Slow+long range
+};
 
 void rfm_initialize(node_role_et node_role)
 {
@@ -32,8 +41,9 @@ void rfm_initialize(node_role_et node_role)
     if (rf95.init())
     {
         rfm_ctrl.node_role = node_role;
-        rfm_set_frequency(868.8);
+        rfm_set_frequency(867.5);
         rfm_set_power(14);
+        rfm_set_modem_conf(0);
     }
     else
     {
@@ -75,6 +85,12 @@ void rfm_set_power(int8_t pwr)
 {
     rfm_ctrl.power =  pwr;
     rf95.setTxPower( pwr);
+}
+
+void rfm_set_modem_conf(int8_t modem_conf_indx)
+{
+    rfm_ctrl.modem_conf =  modem_config[modem_conf_indx];
+    rf95.setModemConfig(rfm_ctrl.modem_conf);
 }
 
 void rfm_set_frequency(float freq)

@@ -9,7 +9,7 @@
 #define UNIT_LABEL_LEN      10
 #define MEASURE_LABEL_LEN   16
 
-#define APP_NAME   "T2504 Pico RFM95 80x70"
+#define APP_NAME   "T2505_RFM95_Test4"
 #define SW_BM_TEST          0b00001000
 #define SW_BM_ROLE          0b00000100
 #define SW_BM_ADDR_1        0b00000010

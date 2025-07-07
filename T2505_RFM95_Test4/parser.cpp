@@ -42,6 +42,7 @@ cmd_st commands[CMD_NBR_OF] =
   [CMD_GET_ROLE]        = {"ROLE"},
   [CMD_GET_MSG]         = {"GMSG"},
   [CMD_GET_CNTR]        = {"CNTR"},
+  [CMD_SET_MODEM_CONF]  = {"SMCF"},
 };
 
 msg_data_st msg_data = {0};
@@ -295,6 +296,10 @@ void parser_exec_command(msg_st *msg, msg_data_st *msg_data)
             case CMD_GET_CNTR:
                 parser_get_cntr(); 
                 break;   
+            case CMD_SET_MODEM_CONF:
+                Serial.printf("Set Modem Conf: %d", msg_data->value[0]);
+                rfm_set_modem_conf(msg_data->value[0]);
+                break;
         }
 
     }
